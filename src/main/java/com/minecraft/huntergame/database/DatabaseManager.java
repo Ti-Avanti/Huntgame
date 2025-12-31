@@ -114,7 +114,13 @@ public class DatabaseManager {
         if (dataSource == null || dataSource.isClosed()) {
             throw new SQLException("数据库未连接");
         }
-        return dataSource.getConnection();
+        
+        Connection conn = dataSource.getConnection();
+        if (conn == null || conn.isClosed()) {
+            throw new SQLException("无法获取有效的数据库连接");
+        }
+        
+        return conn;
     }
     
     /**
@@ -122,8 +128,13 @@ public class DatabaseManager {
      */
     public void disconnect() {
         if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-            plugin.getLogger().info("数据库已断开");
+            try {
+                dataSource.close();
+                plugin.getLogger().info("数据库已断开");
+            } catch (Exception ex) {
+                plugin.getLogger().severe("关闭数据库连接失败: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
     }
     

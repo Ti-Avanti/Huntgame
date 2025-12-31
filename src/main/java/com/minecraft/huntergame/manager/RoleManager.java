@@ -130,11 +130,19 @@ public class RoleManager {
             // 发送角色通知
             switch (role) {
                 case RUNNER:
-                    player.sendTitle(
-                        "§a§l你是逃亡者",
-                        "§7击败末影龙获胜",
-                        10, 60, 10
-                    );
+                    // 使用新的Title API（兼容1.11+）
+                    try {
+                        // 尝试使用新API（1.11+）
+                        player.sendTitle(
+                            "§a§l你是逃亡者",
+                            "§7击败末影龙获胜",
+                            10, 60, 10
+                        );
+                    } catch (NoSuchMethodError e) {
+                        // 降级到旧API
+                        player.sendMessage("§a§l========== 你的角色 ==========");
+                        player.sendMessage("§a§l你是逃亡者");
+                    }
                     player.sendMessage("§a§l========== 你的角色 ==========");
                     player.sendMessage("§a你是 §l逃亡者");
                     player.sendMessage("§7目标: 击败末影龙");
@@ -144,11 +152,19 @@ public class RoleManager {
                     break;
                     
                 case HUNTER:
-                    player.sendTitle(
-                        "§c§l你是猎人",
-                        "§7击杀所有逃亡者获胜",
-                        10, 60, 10
-                    );
+                    // 使用新的Title API（兼容1.11+）
+                    try {
+                        // 尝试使用新API（1.11+）
+                        player.sendTitle(
+                            "§c§l你是猎人",
+                            "§7击杀所有逃亡者获胜",
+                            10, 60, 10
+                        );
+                    } catch (NoSuchMethodError e) {
+                        // 降级到旧API
+                        player.sendMessage("§c§l========== 你的角色 ==========");
+                        player.sendMessage("§c§l你是猎人");
+                    }
                     player.sendMessage("§c§l========== 你的角色 ==========");
                     player.sendMessage("§c你是 §l猎人");
                     player.sendMessage("§7目标: 击杀所有逃亡者");

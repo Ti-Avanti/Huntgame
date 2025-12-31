@@ -75,11 +75,16 @@ public class RedisManager {
      */
     public void disconnect() {
         if (jedisPool != null && !jedisPool.isClosed()) {
-            // 注销服务器
-            unregisterServer();
-            
-            jedisPool.close();
-            plugin.getLogger().info("Redis连接已关闭");
+            try {
+                // 注销服务器
+                unregisterServer();
+                
+                jedisPool.close();
+                plugin.getLogger().info("Redis连接已关闭");
+            } catch (Exception ex) {
+                plugin.getLogger().severe("关闭Redis连接失败: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
     }
     
@@ -157,7 +162,8 @@ public class RedisManager {
     public Set<String> getOnlineServers() {
         try (Jedis jedis = jedisPool.getResource()) {
             String pattern = keyPrefix + "servers:*";
-            return jedis.keys(pattern);
+            Set<String> keys = jedis.keys(pattern);
+            return keys != null ? keys : Set.of();
             
         } catch (Exception ex) {
             plugin.getLogger().warning("获取在线服务器列表失败: " + ex.getMessage());
@@ -233,7 +239,8 @@ public class RedisManager {
     public Set<String> getAllManhuntGames() {
         try (Jedis jedis = jedisPool.getResource()) {
             String pattern = keyPrefix + "manhunt:games:*";
-            return jedis.keys(pattern);
+            Set<String> keys = jedis.keys(pattern);
+            return keys != null ? keys : Set.of();
             
         } catch (Exception ex) {
             plugin.getLogger().warning("获取Manhunt游戏列表失败: " + ex.getMessage());

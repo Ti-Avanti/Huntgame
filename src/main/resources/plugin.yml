@@ -13,29 +13,13 @@ softdepend: [Vault, PlaceholderAPI]
 commands:
   huntergame:
     description: 猎人游戏主命令
-    usage: /<command> [help|join|leave|stats]
-    aliases: [hg, hunter]
-  
-  hgjoin:
-    description: 加入游戏
-    usage: /<command> [arena]
-    aliases: [hgj]
-  
-  hgleave:
-    description: 离开游戏
-    usage: /<command>
-    aliases: [hgl]
+    usage: /<command> [help|start|stop|join|leave|spectate]
+    aliases: [hg, manhunt]
   
   hgstats:
     description: 查看统计
     usage: /<command> [player]
     aliases: [hgs]
-  
-  hgadmin:
-    description: 管理员命令
-    usage: /<command> [setup|reload|arena]
-    aliases: [hga]
-    permission: huntergame.admin
   
   hgsetup:
     description: 游戏设置命令
@@ -61,7 +45,7 @@ permissions:
       huntergame.join: true
       huntergame.leave: true
       huntergame.stats: true
-      huntergame.list: true
+      huntergame.spectate: true
       huntergame.admin: true
       huntergame.party: true
   
@@ -77,8 +61,8 @@ permissions:
     description: 查看统计权限
     default: true
   
-  huntergame.list:
-    description: 查看游戏列表权限
+  huntergame.spectate:
+    description: 观战权限
     default: true
   
   huntergame.party:
@@ -93,7 +77,6 @@ permissions:
       huntergame.admin.stop: true
       huntergame.admin.setup: true
       huntergame.admin.reload: true
-      huntergame.admin.arena: true
   
   huntergame.admin.start:
     description: 开始游戏权限
@@ -104,13 +87,9 @@ permissions:
     default: op
   
   huntergame.admin.setup:
-    description: 设置竞技场权限
+    description: 设置游戏权限
     default: op
   
   huntergame.admin.reload:
     description: 重载配置权限
-    default: op
-  
-  huntergame.admin.arena:
-    description: 竞技场管理权限
     default: op

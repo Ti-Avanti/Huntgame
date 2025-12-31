@@ -227,8 +227,7 @@ manhunt:
 
 如有问题或建议，请：
 1. 提交Issue
-2. 加入Discord服务器
-3. 发送邮件至support@example.com
+
 
 ## 🙏 致谢
 

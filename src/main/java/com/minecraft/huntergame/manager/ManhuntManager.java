@@ -477,6 +477,10 @@ public class ManhuntManager {
         Location spawnLocation = game.getSpawnLocation();
         if (spawnLocation == null) {
             // 如果没有设置出生点，使用世界默认出生点
+            if (plugin.getServer().getWorlds().isEmpty()) {
+                plugin.getLogger().warning("无法传送玩家：没有可用的世界");
+                return;
+            }
             spawnLocation = plugin.getServer().getWorlds().get(0).getSpawnLocation();
         }
         
