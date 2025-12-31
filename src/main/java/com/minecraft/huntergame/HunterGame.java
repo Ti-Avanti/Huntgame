@@ -7,6 +7,7 @@ import com.minecraft.huntergame.config.LanguageManager;
 import com.minecraft.huntergame.config.MainConfig;
 import com.minecraft.huntergame.database.DatabaseManager;
 import com.minecraft.huntergame.database.PlayerRepository;
+import com.minecraft.huntergame.integration.IntegrationManager;
 import com.minecraft.huntergame.integration.VaultIntegration;
 import com.minecraft.huntergame.manager.ItemManager;
 import com.minecraft.huntergame.manager.StatsManager;
@@ -45,6 +46,9 @@ public class HunterGame extends JavaPlugin {
     
     // 道具管理器
     private ItemManager itemManager;
+    
+    // 集成管理器
+    private IntegrationManager integrationManager;
     
     // Vault集成
     private VaultIntegration vaultIntegration;
@@ -156,10 +160,15 @@ public class HunterGame extends JavaPlugin {
                 databaseManager.disconnect();
             }
             
-            // 4. 停止任务
+            // 4. 注销集成
+            if (integrationManager != null) {
+                integrationManager.unregisterAll();
+            }
+            
+            // 5. 停止任务
             getServer().getScheduler().cancelTasks(this);
             
-            // 5. 关闭Bungee组件（如果启用）
+            // 6. 关闭Bungee组件（如果启用）
             if (serverMode == ServerMode.BUNGEE) {
                 shutdownBungeeComponents();
             }
@@ -254,8 +263,12 @@ public class HunterGame extends JavaPlugin {
      */
     private void initIntegrations() {
         try {
-            // 初始化Vault集成
-            vaultIntegration = new VaultIntegration(this);
+            // 初始化集成管理器
+            integrationManager = new IntegrationManager(this);
+            integrationManager.registerAll();
+            
+            // 获取Vault集成引用（向后兼容）
+            vaultIntegration = integrationManager.getVaultIntegration();
             
             getLogger().info("第三方集成已初始化");
         } catch (Exception ex) {
@@ -562,5 +575,14 @@ public class HunterGame extends JavaPlugin {
      */
     public com.minecraft.huntergame.bungee.LoadBalancer getLoadBalancer() {
         return loadBalancer;
+    }
+    
+    /**
+     * 获取集成管理器
+     * 
+     * @return 集成管理器
+     */
+    public IntegrationManager getIntegrationManager() {
+        return integrationManager;
     }
 }

@@ -49,3 +49,6 @@ buildNumber.properties
 plugin-dev-standards/
 plugin-dev-rule/
 
+# Forum post (宣传文档)
+FORUM_POST.md
+
