@@ -1,0 +1,173 @@
+# Hunter Game English Language File
+
+# Prefix
+prefix: "&8[&cHunterGame&8] &7"
+
+# General Messages
+general:
+  no-permission: "&cYou don't have permission to execute this command!"
+  player-only: "&cThis command can only be executed by players!"
+  invalid-args: "&cInvalid arguments! Usage: {0}"
+  config-reloaded: "&aConfiguration reloaded!"
+  
+# Game States
+game:
+  waiting: "&eWaiting..."
+  starting: "&aGame starting!"
+  running: "&cGame in progress"
+  ending: "&eGame ending"
+  restarting: "&eRestarting..."
+  
+# Join/Leave
+join:
+  success: "&aYou joined arena &e{0}&a!"
+  already-in-game: "&cYou are already in a game!"
+  arena-full: "&cArena is full!"
+  arena-not-found: "&cArena not found!"
+  arena-disabled: "&cThis arena is disabled!"
+  game-started: "&cGame has already started!"
+  no-arena-available: "&cNo arena available!"
+  
+leave:
+  success: "&aYou left the arena!"
+  not-in-game: "&cYou are not in a game!"
+  
+# Role Assignment
+role:
+  hunter: "&cHunter"
+  survivor: "&aSurvivor"
+  spectator: "&7Spectator"
+  assigned-hunter: "&cYou are assigned as Hunter! Hunt down all survivors!"
+  assigned-survivor: "&aYou are assigned as Survivor! Escape as soon as possible!"
+  
+# Gameplay
+gameplay:
+  game-starting: "&aGame starting in &e{0} &aseconds!"
+  preparation-time: "&eSurvivors have &c{0} &eseconds of preparation time!"
+  hunter-released: "&cHunters have been released!"
+  time-remaining: "&eTime remaining: &c{0}"
+  player-joined: "&e{0} &7joined the game &7({1}/{2})"
+  player-left: "&e{0} &7left the game &7({1}/{2})"
+  
+# Victory/Defeat
+victory:
+  hunters-win: "&cHunters win! All survivors eliminated!"
+  survivors-win: "&aSurvivors win! Someone escaped!"
+  time-up: "&eTime's up! Survivors win!"
+  
+# Elimination
+elimination:
+  eliminated: "&cYou have been eliminated!"
+  player-eliminated: "&c{0} &7has been eliminated!"
+  killed-by: "&cYou were killed by &e{0}&c!"
+  
+# Escape
+escape:
+  escaping: "&aEscape progress: &e{0}%"
+  escaped: "&aYou successfully escaped!"
+  player-escaped: "&a{0} &7successfully escaped!"
+  escape-cancelled: "&cEscape cancelled!"
+  
+# Abilities
+ability:
+  speed-boost: "&aSpeed Boost activated!"
+  tracker: "&aTracker activated! Pointing to nearest survivor"
+  night-vision: "&aNight Vision activated!"
+  cooldown: "&cAbility on cooldown! &e{0} &cseconds remaining"
+  
+# Items
+item:
+  invisibility-potion: "&7Invisibility Potion"
+  speed-potion: "&7Speed Potion"
+  smoke-bomb: "&7Smoke Bomb"
+  decoy: "&7Decoy"
+  used: "&aYou used {0}!"
+  no-uses: "&cThis item has no uses left!"
+  
+# Statistics
+stats:
+  title: "&e=== &6{0}'s Statistics &e==="
+  games-played: "&7Games Played: &e{0}"
+  wins: "&7Wins: &a{0}"
+  losses: "&7Losses: &c{0}"
+  kills: "&7Kills: &e{0}"
+  deaths: "&7Deaths: &e{0}"
+  escapes: "&7Escapes: &a{0}"
+  
+# Leaderboard
+leaderboard:
+  title: "&e=== &6Leaderboard &e==="
+  wins: "&7Top Wins"
+  kills: "&7Top Kills"
+  escapes: "&7Top Escapes"
+  entry: "&e{0}. &7{1}: &a{2}"
+  
+# Spectator
+spectator:
+  now-spectating: "&7You are now spectating &e{0}"
+  no-players: "&cNo players to spectate!"
+  
+# Rewards
+reward:
+  received: "&aYou received &e{0} &acoins!"
+  
+# Errors
+error:
+  database: "&cDatabase error! Please contact an administrator"
+  world-not-found: "&cWorld not found: {0}"
+  arena-setup-incomplete: "&cArena setup incomplete!"
+
+# Party System Messages
+party:
+  created: "&aSuccessfully created a party!"
+  create-failed: "&cFailed to create party!"
+  disbanded: "&cThe party has been disbanded!"
+  disbanded-self: "&aSuccessfully disbanded the party!"
+  disband-failed: "&cFailed to disband party!"
+  not-in-party: "&cYou are not in a party!"
+  already-in-party: "&cYou are already in a party!"
+  not-leader: "&cOnly the party leader can do this!"
+  invited: "&aYou have been invited to &e{0}'s &aparty!"
+  invite-accept-hint: "&7Use &e/party accept {0} &7to accept"
+  invite-sent: "&aInvitation sent to &e{0}!"
+  invite-failed: "&cFailed to send invitation!"
+  invite-declined: "&e{0} &cdeclined your party invitation!"
+  invite-declined-self: "&aYou declined &e{0}'s &aparty invitation!"
+  no-invitation: "&cYou have no invitation from that party!"
+  joined: "&aSuccessfully joined &e{0}'s &aparty!"
+  member-joined: "&e{0} &ajoined the party!"
+  left: "&aSuccessfully left the party!"
+  member-left: "&e{0} &cleft the party!"
+  leave-failed: "&cFailed to leave party!"
+  kicked: "&cYou have been kicked from the party!"
+  kicked-member: "&aSuccessfully kicked &e{0}!"
+  member-kicked: "&e{0} &cwas kicked from the party!"
+  kick-failed: "&cFailed to kick member!"
+  new-leader: "&e{0} &ais now the party leader!"
+  full: "&cThe party is full!"
+  cannot-invite-self: "&cYou cannot invite yourself!"
+  cannot-kick-self: "&cYou cannot kick yourself!"
+  target-already-in-party: "&e{0} &cis already in a party!"
+  not-member: "&e{0} &cis not a party member!"
+  chat-format: "&d[Party] &f{0}: &7{1}"
+  chat-mode-enabled: "&aParty chat mode enabled!"
+  chat-mode-disabled: "&cParty chat mode disabled!"
+  joined-arena: "&aParty members ({0}) joined the game together!"
+  not-enough-space: "&cNot enough space in the arena for the whole party!"
+  member-already-in-game: "&e{0} &cis already in a game!"
+  no-arena-available: "&cNo available arena can accommodate the whole party!"
+  usage-invite: "&cUsage: /party invite <player>"
+  usage-accept: "&cUsage: /party accept <leader>"
+  usage-decline: "&cUsage: /party decline <leader>"
+  usage-kick: "&cUsage: /party kick <player>"
+
+# Game Event Messages
+event:
+  chest-refill: "&e[Event] &aChests refilled! &e{0} &achests have been restocked!"
+  item-drop: "&e[Event] &aSpecial item dropped! &e{0} &ahas spawned on the map!"
+  weather-clear: "&e[Event] &aWeather cleared!"
+  weather-rain: "&e[Event] &7It's starting to rain..."
+  weather-thunder: "&e[Event] &cThunderstorm incoming!"
+  time-day: "&e[Event] &aDay has arrived!"
+  time-sunset: "&e[Event] &6Sunset is falling..."
+  time-night: "&e[Event] &8Night has fallen..."

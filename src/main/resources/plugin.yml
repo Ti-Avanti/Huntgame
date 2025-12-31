@@ -1,0 +1,91 @@
+name: HunterGame
+version: ${project.version}
+main: com.minecraft.huntergame.HunterGame
+api-version: 1.16
+author: YourName
+description: ${project.description}
+website: https://github.com/yourusername/HunterGame
+
+# 软依赖
+softdepend: [Vault, PlaceholderAPI]
+
+# 命令
+commands:
+  huntergame:
+    description: 猎人游戏主命令
+    usage: /<command> [help|join|leave|stats]
+    aliases: [hg, hunter]
+  
+  hgjoin:
+    description: 加入游戏
+    usage: /<command> [arena]
+    aliases: [hgj]
+  
+  hgleave:
+    description: 离开游戏
+    usage: /<command>
+    aliases: [hgl]
+  
+  hgstats:
+    description: 查看统计
+    usage: /<command> [player]
+    aliases: [hgs]
+  
+  hgadmin:
+    description: 管理员命令
+    usage: /<command> [setup|reload|arena]
+    aliases: [hga]
+    permission: huntergame.admin
+  
+  party:
+    description: 队伍命令
+    usage: /<command> [create|disband|invite|accept|decline|leave|kick|list|chat|info]
+    aliases: [p, team]
+
+# 权限
+permissions:
+  huntergame.*:
+    description: 所有权限
+    default: op
+    children:
+      huntergame.join: true
+      huntergame.leave: true
+      huntergame.stats: true
+      huntergame.admin: true
+      huntergame.party: true
+  
+  huntergame.join:
+    description: 加入游戏权限
+    default: true
+  
+  huntergame.leave:
+    description: 离开游戏权限
+    default: true
+  
+  huntergame.stats:
+    description: 查看统计权限
+    default: true
+  
+  huntergame.party:
+    description: 队伍系统权限
+    default: true
+  
+  huntergame.admin:
+    description: 管理员权限
+    default: op
+    children:
+      huntergame.admin.setup: true
+      huntergame.admin.reload: true
+      huntergame.admin.arena: true
+  
+  huntergame.admin.setup:
+    description: 设置竞技场权限
+    default: op
+  
+  huntergame.admin.reload:
+    description: 重载配置权限
+    default: op
+  
+  huntergame.admin.arena:
+    description: 竞技场管理权限
+    default: op

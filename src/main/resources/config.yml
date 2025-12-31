@@ -1,0 +1,241 @@
+# ========================================
+#     猎人游戏插件配置文件
+# ========================================
+
+# 服务器模式
+# MULTIARENA - 多竞技场模式(单服务器)
+# BUNGEE - Bungee分布式模式(多服务器)
+mode: MULTIARENA
+
+# ========================================
+#     数据库配置
+# ========================================
+database:
+  # 数据库类型: MYSQL 或 SQLITE
+  type: SQLITE
+  
+  # MySQL配置(仅当type为MYSQL时生效)
+  mysql:
+    host: localhost
+    port: 3306
+    database: huntergame
+    username: root
+    password: password
+    
+  # 连接池配置
+  pool:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+
+# ========================================
+#     Bungee配置(仅BUNGEE模式生效)
+# ========================================
+bungee:
+  # 是否启用Bungee模式
+  enabled: false
+  
+  # 大厅服务器名称
+  lobby-server: "lobby"
+  
+  # 游戏结束后是否自动传送玩家回大厅
+  auto-send: true
+  
+  # 传送延迟(秒)
+  send-delay: 5
+
+# ========================================
+#     Redis配置(仅BUNGEE模式生效)
+# ========================================
+redis:
+  # 是否启用Redis
+  enabled: false
+  
+  # Redis服务器地址
+  host: localhost
+  
+  # Redis端口
+  port: 6379
+  
+  # Redis密码(留空表示无密码)
+  password: ""
+  
+  # 服务器名称(用于在Redis中标识此服务器)
+  server-name: "game-1"
+  
+  # 状态更新间隔(秒)
+  update-interval: 10
+
+# ========================================
+#     游戏配置
+# ========================================
+game:
+  # 默认游戏模式: CLASSIC 或 TEAM
+  default-mode: CLASSIC
+  
+  # 最小玩家数
+  min-players: 2
+  
+  # 最大玩家数
+  max-players: 16
+  
+  # 开始倒计时(秒)
+  start-countdown: 10
+  
+  # 游戏时长(秒)
+  game-time: 600
+  
+  # 逃脱所需时间(秒)
+  escape-time: 10
+
+# ========================================
+#     猎人配置
+# ========================================
+hunter:
+  # 经典模式猎人数量
+  classic-count: 1
+  
+  # 团队模式猎人比例(1:3表示每4个玩家有1个猎人)
+  team-ratio: 0.25
+  
+  # 猎人能力配置
+  abilities:
+    # 速度提升
+    speed-boost:
+      enabled: true
+      cooldown: 30
+      duration: 10
+      speed-level: 2
+    
+    # 追踪能力
+    tracker:
+      enabled: true
+      cooldown: 45
+      duration: 15
+      update-interval: 2
+    
+    # 夜视能力
+    night-vision:
+      enabled: true
+      cooldown: 60
+      duration: 30
+
+# ========================================
+#     逃生者配置
+# ========================================
+survivor:
+  # 初始道具
+  starting-items:
+    invisibility-potion: 1
+    speed-potion: 2
+    smoke-bomb: 1
+    decoy: 1
+  
+  # 道具配置
+  items:
+    # 隐身药水
+    invisibility-potion:
+      enabled: true
+      duration: 30
+    
+    # 速度药水
+    speed-potion:
+      enabled: true
+      duration: 15
+      speed-level: 2
+    
+    # 烟雾弹
+    smoke-bomb:
+      enabled: true
+      duration: 10
+      radius: 5
+    
+    # 诱饵
+    decoy:
+      enabled: true
+      duration: 30
+
+# ========================================
+#     奖励配置
+# ========================================
+rewards:
+  # 是否启用奖励
+  enabled: true
+  
+  # 胜利奖励
+  win:
+    money: 100
+    
+  # 失败奖励
+  lose:
+    money: 20
+    
+  # 击杀奖励(猎人)
+  kill:
+    money: 10
+    
+  # 逃脱奖励(逃生者)
+  escape:
+    money: 50
+
+# ========================================
+#     语言配置
+# ========================================
+language:
+  # 默认语言: zh_CN 或 en_US
+  default: zh_CN
+  
+  # 是否允许玩家选择语言
+  allow-player-choice: true
+
+# ========================================
+#     队伍系统配置
+# ========================================
+party:
+  # 是否启用队伍系统
+  enabled: true
+  
+  # 队伍最大成员数
+  max-size: 4
+  
+  # 队伍成员是否分配到同一阵营
+  same-faction: true
+  
+  # 邀请过期时间(秒)
+  invite-expire-time: 60
+
+# ========================================
+#     游戏事件系统配置
+# ========================================
+events:
+  # 是否启用游戏事件系统
+  enabled: true
+  
+  # 事件检测间隔(秒)
+  check-interval: 60
+  
+  # 箱子刷新事件
+  chest-refill:
+    enabled: true
+    trigger-chance: 0.3
+  
+  # 道具掉落事件
+  item-drop:
+    enabled: true
+    trigger-chance: 0.2
+  
+  # 天气变化事件
+  weather-change:
+    enabled: true
+    trigger-chance: 0.15
+
+# ========================================
+#     其他配置
+# ========================================
+# 自动保存间隔(分钟)
+auto-save-interval: 5
+
+# 调试模式
+debug: false
