@@ -45,7 +45,7 @@ buildNumber.properties
 
 # Kiro
 .kiro/
-cunzhi-memory/
+.cunzhi-memory/
 plugin-dev-standards/
 plugin-dev-rule/
 
