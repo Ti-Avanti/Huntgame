@@ -36,16 +36,16 @@ public class PlayerRepository {
     public void save(PlayerData data) throws SQLException {
         String sql = databaseManager.getType() == DatabaseType.SQLITE ?
             "INSERT OR REPLACE INTO player_data " +
-            "(uuid, name, games_played, games_won, games_lost, hunter_kills, hunter_deaths, " +
-            "survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" :
+            "(uuid, name, games_played, games_won, games_lost, runner_wins, hunter_wins, dragon_kills, " +
+            "hunter_kills, hunter_deaths, survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" :
             "INSERT INTO player_data " +
-            "(uuid, name, games_played, games_won, games_lost, hunter_kills, hunter_deaths, " +
-            "survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "(uuid, name, games_played, games_won, games_lost, runner_wins, hunter_wins, dragon_kills, " +
+            "hunter_kills, hunter_deaths, survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
             "ON DUPLICATE KEY UPDATE " +
-            "name=?, games_played=?, games_won=?, games_lost=?, hunter_kills=?, hunter_deaths=?, " +
-            "survivor_escapes=?, survivor_deaths=?, total_survival_time=?, updated_at=?";
+            "name=?, games_played=?, games_won=?, games_lost=?, runner_wins=?, hunter_wins=?, dragon_kills=?, " +
+            "hunter_kills=?, hunter_deaths=?, survivor_escapes=?, survivor_deaths=?, total_survival_time=?, updated_at=?";
         
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -55,25 +55,31 @@ public class PlayerRepository {
             stmt.setInt(3, data.getGamesPlayed());
             stmt.setInt(4, data.getGamesWon());
             stmt.setInt(5, data.getGamesLost());
-            stmt.setInt(6, data.getHunterKills());
-            stmt.setInt(7, data.getHunterDeaths());
-            stmt.setInt(8, data.getSurvivorEscapes());
-            stmt.setInt(9, data.getSurvivorDeaths());
-            stmt.setInt(10, data.getTotalSurvivalTime());
-            stmt.setLong(11, data.getCreatedAt());
-            stmt.setLong(12, data.getUpdatedAt());
+            stmt.setInt(6, data.getRunnerWins());
+            stmt.setInt(7, data.getHunterWins());
+            stmt.setInt(8, data.getDragonKills());
+            stmt.setInt(9, data.getHunterKills());
+            stmt.setInt(10, data.getHunterDeaths());
+            stmt.setInt(11, data.getSurvivorEscapes());
+            stmt.setInt(12, data.getSurvivorDeaths());
+            stmt.setInt(13, data.getTotalSurvivalTime());
+            stmt.setLong(14, data.getCreatedAt());
+            stmt.setLong(15, data.getUpdatedAt());
             
             if (databaseManager.getType() == DatabaseType.MYSQL) {
-                stmt.setString(13, data.getName());
-                stmt.setInt(14, data.getGamesPlayed());
-                stmt.setInt(15, data.getGamesWon());
-                stmt.setInt(16, data.getGamesLost());
-                stmt.setInt(17, data.getHunterKills());
-                stmt.setInt(18, data.getHunterDeaths());
-                stmt.setInt(19, data.getSurvivorEscapes());
-                stmt.setInt(20, data.getSurvivorDeaths());
-                stmt.setInt(21, data.getTotalSurvivalTime());
-                stmt.setLong(22, data.getUpdatedAt());
+                stmt.setString(16, data.getName());
+                stmt.setInt(17, data.getGamesPlayed());
+                stmt.setInt(18, data.getGamesWon());
+                stmt.setInt(19, data.getGamesLost());
+                stmt.setInt(20, data.getRunnerWins());
+                stmt.setInt(21, data.getHunterWins());
+                stmt.setInt(22, data.getDragonKills());
+                stmt.setInt(23, data.getHunterKills());
+                stmt.setInt(24, data.getHunterDeaths());
+                stmt.setInt(25, data.getSurvivorEscapes());
+                stmt.setInt(26, data.getSurvivorDeaths());
+                stmt.setInt(27, data.getTotalSurvivalTime());
+                stmt.setLong(28, data.getUpdatedAt());
             }
             
             stmt.executeUpdate();
@@ -196,6 +202,69 @@ public class PlayerRepository {
     }
     
     /**
+     * 获取逃亡者胜利排行榜
+     */
+    public List<PlayerData> getTopRunnerWins(int limit) throws SQLException {
+        String sql = "SELECT * FROM player_data ORDER BY runner_wins DESC LIMIT ?";
+        
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, limit);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<PlayerData> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(parsePlayerData(rs));
+                }
+                return list;
+            }
+        }
+    }
+    
+    /**
+     * 获取猎人胜利排行榜
+     */
+    public List<PlayerData> getTopHunterWins(int limit) throws SQLException {
+        String sql = "SELECT * FROM player_data ORDER BY hunter_wins DESC LIMIT ?";
+        
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, limit);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<PlayerData> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(parsePlayerData(rs));
+                }
+                return list;
+            }
+        }
+    }
+    
+    /**
+     * 获取击败末影龙排行榜
+     */
+    public List<PlayerData> getTopDragonKills(int limit) throws SQLException {
+        String sql = "SELECT * FROM player_data ORDER BY dragon_kills DESC LIMIT ?";
+        
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, limit);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<PlayerData> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(parsePlayerData(rs));
+                }
+                return list;
+            }
+        }
+    }
+    
+    /**
      * 异步保存数据
      */
     public void saveAsync(PlayerData data, Consumer<Boolean> callback) {
@@ -246,6 +315,9 @@ public class PlayerRepository {
         data.setGamesPlayed(rs.getInt("games_played"));
         data.setGamesWon(rs.getInt("games_won"));
         data.setGamesLost(rs.getInt("games_lost"));
+        data.setRunnerWins(rs.getInt("runner_wins"));
+        data.setHunterWins(rs.getInt("hunter_wins"));
+        data.setDragonKills(rs.getInt("dragon_kills"));
         data.setHunterKills(rs.getInt("hunter_kills"));
         data.setHunterDeaths(rs.getInt("hunter_deaths"));
         data.setSurvivorEscapes(rs.getInt("survivor_escapes"));

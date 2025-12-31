@@ -84,6 +84,13 @@ public class RedisManager {
     }
     
     /**
+     * 关闭Redis连接（别名）
+     */
+    public void shutdown() {
+        disconnect();
+    }
+    
+    /**
      * 注册服务器到Redis
      */
     public void registerServer() {
@@ -182,6 +189,69 @@ public class RedisManager {
             
         } catch (Exception ex) {
             plugin.getLogger().warning("发布服务器状态失败: " + ex.getMessage());
+        }
+    }
+    
+    /**
+     * 同步Manhunt游戏状态到Redis
+     */
+    public void syncManhuntGameState(String gameId, String state, int playerCount) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String key = keyPrefix + "manhunt:games:" + gameId;
+            
+            Map<String, String> gameData = new HashMap<>();
+            gameData.put("gameId", gameId);
+            gameData.put("server", serverName);
+            gameData.put("state", state);
+            gameData.put("players", String.valueOf(playerCount));
+            gameData.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            
+            jedis.hmset(key, gameData);
+            jedis.expire(key, 300); // 5分钟过期
+            
+        } catch (Exception ex) {
+            plugin.getLogger().warning("同步Manhunt游戏状态失败: " + ex.getMessage());
+        }
+    }
+    
+    /**
+     * 移除Manhunt游戏状态
+     */
+    public void removeManhuntGameState(String gameId) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String key = keyPrefix + "manhunt:games:" + gameId;
+            jedis.del(key);
+            
+        } catch (Exception ex) {
+            plugin.getLogger().warning("移除Manhunt游戏状态失败: " + ex.getMessage());
+        }
+    }
+    
+    /**
+     * 获取所有Manhunt游戏
+     */
+    public Set<String> getAllManhuntGames() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String pattern = keyPrefix + "manhunt:games:*";
+            return jedis.keys(pattern);
+            
+        } catch (Exception ex) {
+            plugin.getLogger().warning("获取Manhunt游戏列表失败: " + ex.getMessage());
+            return Set.of();
+        }
+    }
+    
+    /**
+     * 获取Manhunt游戏信息
+     */
+    public Map<String, String> getManhuntGameInfo(String gameId) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String key = keyPrefix + "manhunt:games:" + gameId;
+            return jedis.hgetAll(key);
+            
+        } catch (Exception ex) {
+            plugin.getLogger().warning("获取Manhunt游戏信息失败: " + ex.getMessage());
+            return new HashMap<>();
         }
     }
     

@@ -83,6 +83,13 @@ public class StatsManager {
     }
     
     /**
+     * 保存玩家数据（通过Player对象）
+     */
+    public void savePlayerData(Player player) {
+        savePlayerData(player.getUniqueId());
+    }
+    
+    /**
      * 保存玩家数据（别名方法）
      */
     public void savePlayer(UUID uuid) {
@@ -240,6 +247,54 @@ public class StatsManager {
     }
     
     /**
+     * 获取逃亡者胜利排行榜
+     */
+    public void getTopRunnerWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                List<PlayerData> list = playerRepository.getTopRunnerWins(limit);
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
+            } catch (Exception ex) {
+                plugin.getLogger().severe("获取逃亡者胜利排行榜失败: " + ex.getMessage());
+                ex.printStackTrace();
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
+            }
+        });
+    }
+    
+    /**
+     * 获取猎人胜利排行榜
+     */
+    public void getTopHunterWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                List<PlayerData> list = playerRepository.getTopHunterWins(limit);
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
+            } catch (Exception ex) {
+                plugin.getLogger().severe("获取猎人胜利排行榜失败: " + ex.getMessage());
+                ex.printStackTrace();
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
+            }
+        });
+    }
+    
+    /**
+     * 获取击败末影龙排行榜
+     */
+    public void getTopDragonKills(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                List<PlayerData> list = playerRepository.getTopDragonKills(limit);
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
+            } catch (Exception ex) {
+                plugin.getLogger().severe("获取击败末影龙排行榜失败: " + ex.getMessage());
+                ex.printStackTrace();
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
+            }
+        });
+    }
+    
+    /**
      * 保存所有数据
      */
     public void saveAll() {
@@ -250,5 +305,149 @@ public class StatsManager {
         }
         
         plugin.getLogger().info("已保存 " + dataCache.size() + " 个玩家数据");
+    }
+    
+    // ==================== 排行榜缓存系统 ====================
+    
+    // 排行榜缓存
+    private List<PlayerData> topWinsCache = null;
+    private List<PlayerData> topKillsCache = null;
+    private List<PlayerData> topRunnerWinsCache = null;
+    private List<PlayerData> topHunterWinsCache = null;
+    private List<PlayerData> topDragonKillsCache = null;
+    private long lastCacheUpdate = 0;
+    private final long CACHE_DURATION = 5 * 60 * 1000; // 5分钟
+    
+    /**
+     * 获取胜利榜
+     */
+    public List<PlayerData> getTopWins(int limit) {
+        updateCacheIfNeeded();
+        if (topWinsCache == null || topWinsCache.isEmpty()) {
+            try {
+                return playerRepository.getTopWins(limit);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("获取胜利榜失败: " + ex.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }
+        return topWinsCache.subList(0, Math.min(limit, topWinsCache.size()));
+    }
+    
+    /**
+     * 获取击杀榜
+     */
+    public List<PlayerData> getTopKills(int limit) {
+        updateCacheIfNeeded();
+        if (topKillsCache == null || topKillsCache.isEmpty()) {
+            try {
+                return playerRepository.getTopKills(limit);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("获取击杀榜失败: " + ex.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }
+        return topKillsCache.subList(0, Math.min(limit, topKillsCache.size()));
+    }
+    
+    /**
+     * 获取逃亡者胜利榜
+     */
+    public List<PlayerData> getTopRunnerWins(int limit) {
+        updateCacheIfNeeded();
+        if (topRunnerWinsCache == null || topRunnerWinsCache.isEmpty()) {
+            try {
+                return playerRepository.getTopRunnerWins(limit);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("获取逃亡者胜利榜失败: " + ex.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }
+        return topRunnerWinsCache.subList(0, Math.min(limit, topRunnerWinsCache.size()));
+    }
+    
+    /**
+     * 获取猎人胜利榜
+     */
+    public List<PlayerData> getTopHunterWins(int limit) {
+        updateCacheIfNeeded();
+        if (topHunterWinsCache == null || topHunterWinsCache.isEmpty()) {
+            try {
+                return playerRepository.getTopHunterWins(limit);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("获取猎人胜利榜失败: " + ex.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }
+        return topHunterWinsCache.subList(0, Math.min(limit, topHunterWinsCache.size()));
+    }
+    
+    /**
+     * 获取击杀龙榜
+     */
+    public List<PlayerData> getTopDragonKills(int limit) {
+        updateCacheIfNeeded();
+        if (topDragonKillsCache == null || topDragonKillsCache.isEmpty()) {
+            try {
+                return playerRepository.getTopDragonKills(limit);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("获取击杀龙榜失败: " + ex.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }
+        return topDragonKillsCache.subList(0, Math.min(limit, topDragonKillsCache.size()));
+    }
+    
+    /**
+     * 更新缓存（如果需要）
+     */
+    private void updateCacheIfNeeded() {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastCacheUpdate > CACHE_DURATION) {
+            updateLeaderboardCache();
+        }
+    }
+    
+    /**
+     * 更新排行榜缓存
+     */
+    private void updateLeaderboardCache() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                topWinsCache = playerRepository.getTopWins(100);
+                topKillsCache = playerRepository.getTopKills(100);
+                topRunnerWinsCache = playerRepository.getTopRunnerWins(100);
+                topHunterWinsCache = playerRepository.getTopHunterWins(100);
+                topDragonKillsCache = playerRepository.getTopDragonKills(100);
+                lastCacheUpdate = System.currentTimeMillis();
+                
+                plugin.getLogger().info("排行榜缓存已更新");
+            } catch (Exception ex) {
+                plugin.getLogger().warning("更新排行榜缓存失败: " + ex.getMessage());
+            }
+        });
+    }
+    
+    /**
+     * 强制刷新缓存
+     */
+    public void refreshLeaderboardCache() {
+        lastCacheUpdate = 0;
+        updateLeaderboardCache();
+    }
+    
+    /**
+     * 启动定时缓存更新任务
+     */
+    public void startCacheUpdateTask() {
+        // 立即更新一次
+        updateLeaderboardCache();
+        
+        // 每5分钟更新一次
+        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            updateLeaderboardCache();
+        }, 20L * 60 * 5, 20L * 60 * 5);
+        
+        plugin.getLogger().info("排行榜缓存更新任务已启动");
     }
 }

@@ -15,14 +15,20 @@ public class PlayerData {
     private String name;
     
     // 统计数据
-    private int gamesPlayed;      // 游戏场次
-    private int gamesWon;          // 胜利次数
-    private int gamesLost;         // 失败次数
+    private int gamesPlayed;       // 游戏场次
+    private int gamesWon;          // 胜利次数（通用）
+    private int gamesLost;         // 失败次数（通用）
+    private int runnerWins;        // 作为逃亡者的胜利次数
+    private int hunterWins;        // 作为猎人的胜利次数
+    private int dragonKills;       // 击败末影龙次数
     private int hunterKills;       // 作为猎人的击杀数
     private int hunterDeaths;      // 作为猎人的死亡数
-    private int survivorEscapes;   // 作为逃生者的逃脱次数
-    private int survivorDeaths;    // 作为逃生者的死亡数
+    private int survivorEscapes;   // 作为逃生者的逃脱次数（兼容旧数据）
+    private int survivorDeaths;    // 作为逃生者的死亡数（兼容旧数据）
     private int totalSurvivalTime; // 总生存时间(秒)
+    
+    // 临时数据（游戏中）
+    private transient int remainingRespawns; // 剩余复活次数（不持久化）
     
     // 时间戳
     private long createdAt;
@@ -37,11 +43,15 @@ public class PlayerData {
         this.gamesPlayed = 0;
         this.gamesWon = 0;
         this.gamesLost = 0;
+        this.runnerWins = 0;
+        this.hunterWins = 0;
+        this.dragonKills = 0;
         this.hunterKills = 0;
         this.hunterDeaths = 0;
         this.survivorEscapes = 0;
         this.survivorDeaths = 0;
         this.totalSurvivalTime = 0;
+        this.remainingRespawns = 0;
         this.createdAt = System.currentTimeMillis() / 1000;
         this.updatedAt = this.createdAt;
     }
@@ -106,6 +116,33 @@ public class PlayerData {
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
+    public int getRunnerWins() {
+        return runnerWins;
+    }
+    
+    public void setRunnerWins(int runnerWins) {
+        this.runnerWins = runnerWins;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    public int getHunterWins() {
+        return hunterWins;
+    }
+    
+    public void setHunterWins(int hunterWins) {
+        this.hunterWins = hunterWins;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    public int getDragonKills() {
+        return dragonKills;
+    }
+    
+    public void setDragonKills(int dragonKills) {
+        this.dragonKills = dragonKills;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
     public int getHunterKills() {
         return hunterKills;
     }
@@ -167,6 +204,14 @@ public class PlayerData {
         this.updatedAt = updatedAt;
     }
     
+    public int getRemainingRespawns() {
+        return remainingRespawns;
+    }
+    
+    public void setRemainingRespawns(int remainingRespawns) {
+        this.remainingRespawns = remainingRespawns;
+    }
+    
     // ==================== 业务方法 ====================
     
     /**
@@ -190,6 +235,32 @@ public class PlayerData {
      */
     public void addLoss() {
         this.gamesLost++;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    /**
+     * 增加逃亡者胜利次数
+     */
+    public void addRunnerWin() {
+        this.runnerWins++;
+        this.gamesWon++;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    /**
+     * 增加猎人胜利次数
+     */
+    public void addHunterWin() {
+        this.hunterWins++;
+        this.gamesWon++;
+        this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    /**
+     * 增加击败末影龙次数
+     */
+    public void addDragonKill() {
+        this.dragonKills++;
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
@@ -231,6 +302,22 @@ public class PlayerData {
     public void addSurvivalTime(int seconds) {
         this.totalSurvivalTime += seconds;
         this.updatedAt = System.currentTimeMillis() / 1000;
+    }
+    
+    /**
+     * 减少剩余复活次数
+     */
+    public void decreaseRespawns() {
+        if (this.remainingRespawns > 0) {
+            this.remainingRespawns--;
+        }
+    }
+    
+    /**
+     * 检查是否还有复活次数
+     */
+    public boolean hasRespawns() {
+        return this.remainingRespawns > 0;
     }
     
     /**

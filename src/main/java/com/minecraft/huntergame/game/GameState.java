@@ -19,6 +19,11 @@ public enum GameState {
     STARTING("开始倒计时", "Starting"),
     
     /**
+     * 准备阶段 - 逃亡者准备，猎人冻结
+     */
+    PREPARING("准备中", "Preparing"),
+    
+    /**
      * 游戏进行中
      */
     PLAYING("游戏中", "Playing"),
@@ -75,10 +80,10 @@ public enum GameState {
     }
     
     /**
-     * 是否正在运行（包括开始倒计时和游戏中）
+     * 是否正在运行（包括开始倒计时、准备阶段和游戏中）
      */
     public boolean isRunning() {
-        return this == STARTING || this == PLAYING;
+        return this == STARTING || this == PREPARING || this == PLAYING;
     }
     
     /**
@@ -124,6 +129,8 @@ public enum GameState {
             case WAITING:
                 return target == STARTING || target == RESTARTING;
             case STARTING:
+                return target == PREPARING || target == WAITING || target == RESTARTING;
+            case PREPARING:
                 return target == PLAYING || target == WAITING || target == RESTARTING;
             case PLAYING:
                 return target == ENDING;

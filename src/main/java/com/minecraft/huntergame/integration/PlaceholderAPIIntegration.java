@@ -1,10 +1,9 @@
 package com.minecraft.huntergame.integration;
 
 import com.minecraft.huntergame.HunterGame;
-import com.minecraft.huntergame.arena.Arena;
-import com.minecraft.huntergame.game.GameState;
 import com.minecraft.huntergame.game.PlayerRole;
 import com.minecraft.huntergame.models.PlayerData;
+import com.minecraft.huntergame.util.TimeUtil;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 提供游戏相关的变量支持
  * 
  * @author YourName
- * @version 1.0.0
+ * @version 2.0.0 - Manhunt模式
  */
 public class PlaceholderAPIIntegration extends PlaceholderExpansion {
     
@@ -90,46 +89,30 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
                 return "0s";
             }
             
-            // 当前游戏状态变量
-            Arena arena = plugin.getArenaManager().getPlayerArena(player.getPlayer());
-            
+            // 当前游戏状态变量 - Manhunt模式暂未实现
+            // TODO: 实现Manhunt游戏状态查询
             if (params.equals("current_role")) {
-                if (arena != null) {
-                    PlayerRole role = arena.getPlayerRole(player.getUniqueId());
-                    if (role != null) {
-                        return role.getDisplayNameZh();
-                    }
-                }
-                return "无";
+                return "暂不可用";
             }
             
             if (params.equals("current_role_color")) {
-                if (arena != null) {
-                    PlayerRole role = arena.getPlayerRole(player.getUniqueId());
-                    if (role != null) {
-                        return role.getColor().toString();
-                    }
-                }
                 return "&f";
             }
             
-            if (params.equals("current_arena")) {
-                return arena != null ? arena.getArenaName() : "无";
-            }
-            
-            if (params.equals("arena_state")) {
-                if (arena != null) {
-                    return arena.getState().getDisplayNameZh();
-                }
+            if (params.equals("current_game")) {
                 return "无";
             }
             
-            if (params.equals("arena_players")) {
-                return arena != null ? String.valueOf(arena.getPlayers().size()) : "0";
+            if (params.equals("game_state")) {
+                return "无";
             }
             
-            if (params.equals("arena_max_players")) {
-                return arena != null ? String.valueOf(arena.getMaxPlayers()) : "0";
+            if (params.equals("game_players")) {
+                return "0";
+            }
+            
+            if (params.equals("game_max_players")) {
+                return "0";
             }
         }
         
@@ -138,52 +121,12 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
             return PlayerRole.HUNTER.getColor().toString();
         }
         
-        if (params.equals("survivor_color")) {
-            return PlayerRole.SURVIVOR.getColor().toString();
+        if (params.equals("runner_color")) {
+            return PlayerRole.RUNNER.getColor().toString();
         }
         
         if (params.equals("spectator_color")) {
             return PlayerRole.SPECTATOR.getColor().toString();
-        }
-        
-        // 竞技场信息变量 - arena_<name>_state
-        if (params.startsWith("arena_") && params.endsWith("_state")) {
-            String arenaName = params.substring(6, params.length() - 6);
-            Arena arena = plugin.getArenaManager().getArena(arenaName);
-            if (arena != null) {
-                return arena.getState().getDisplayNameZh();
-            }
-            return "未知";
-        }
-        
-        // 竞技场信息变量 - arena_<name>_players
-        if (params.startsWith("arena_") && params.endsWith("_players")) {
-            String arenaName = params.substring(6, params.length() - 8);
-            Arena arena = plugin.getArenaManager().getArena(arenaName);
-            if (arena != null) {
-                return String.valueOf(arena.getPlayers().size());
-            }
-            return "0";
-        }
-        
-        // 竞技场信息变量 - arena_<name>_max_players
-        if (params.startsWith("arena_") && params.endsWith("_max_players")) {
-            String arenaName = params.substring(6, params.length() - 12);
-            Arena arena = plugin.getArenaManager().getArena(arenaName);
-            if (arena != null) {
-                return String.valueOf(arena.getMaxPlayers());
-            }
-            return "0";
-        }
-        
-        // 竞技场信息变量 - arena_<name>_mode
-        if (params.startsWith("arena_") && params.endsWith("_mode")) {
-            String arenaName = params.substring(6, params.length() - 5);
-            Arena arena = plugin.getArenaManager().getArena(arenaName);
-            if (arena != null) {
-                return arena.getGameMode().name().equals("CLASSIC") ? "经典模式" : "团队模式";
-            }
-            return "未知";
         }
         
         // 排行榜变量 - top_wins_<rank>
@@ -279,18 +222,12 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
             return; // 缓存未过期
         }
         
-        // 异步更新缓存
-        plugin.getStatsManager().getTopWins(10, list -> {
-            leaderboardCache.put("wins", list);
-        });
-        
-        plugin.getStatsManager().getTopKills(10, list -> {
-            leaderboardCache.put("kills", list);
-        });
-        
-        plugin.getStatsManager().getTopEscapes(10, list -> {
-            leaderboardCache.put("escapes", list);
-        });
+        // 使用StatsManager的缓存系统（同步获取）
+        leaderboardCache.put("wins", plugin.getStatsManager().getTopWins(10));
+        leaderboardCache.put("kills", plugin.getStatsManager().getTopKills(10));
+        leaderboardCache.put("runner_wins", plugin.getStatsManager().getTopRunnerWins(10));
+        leaderboardCache.put("hunter_wins", plugin.getStatsManager().getTopHunterWins(10));
+        leaderboardCache.put("dragon_kills", plugin.getStatsManager().getTopDragonKills(10));
         
         lastCacheUpdate = now;
     }
@@ -300,25 +237,7 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
      * 将秒数转换为 "Xh Ym Zs" 格式
      */
     private String formatTime(int totalSeconds) {
-        if (totalSeconds < 60) {
-            return totalSeconds + "s";
-        }
-        
-        int hours = totalSeconds / 3600;
-        int minutes = (totalSeconds % 3600) / 60;
-        int seconds = totalSeconds % 60;
-        
-        StringBuilder sb = new StringBuilder();
-        if (hours > 0) {
-            sb.append(hours).append("h ");
-        }
-        if (minutes > 0) {
-            sb.append(minutes).append("m ");
-        }
-        if (seconds > 0 || sb.length() == 0) {
-            sb.append(seconds).append("s");
-        }
-        
-        return sb.toString().trim();
+        // 使用TimeUtil工具类
+        return TimeUtil.formatTime(totalSeconds);
     }
 }

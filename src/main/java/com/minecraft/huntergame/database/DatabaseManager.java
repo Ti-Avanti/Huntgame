@@ -28,7 +28,21 @@ public class DatabaseManager {
     /**
      * 连接数据库
      */
-    public void connect() throws SQLException {
+    public boolean connect() {
+        try {
+            connectInternal();
+            return true;
+        } catch (SQLException ex) {
+            plugin.getLogger().severe("数据库连接失败: " + ex.getMessage());
+            ex.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * 内部连接方法
+     */
+    private void connectInternal() throws SQLException {
         String dbType = plugin.getMainConfig().getDatabaseType();
         
         try {
@@ -114,6 +128,13 @@ public class DatabaseManager {
     }
     
     /**
+     * 关闭数据库连接（别名）
+     */
+    public void shutdown() {
+        disconnect();
+    }
+    
+    /**
      * 创建表
      */
     public void createTables() throws SQLException {
@@ -128,6 +149,9 @@ public class DatabaseManager {
                 "games_played INTEGER DEFAULT 0," +
                 "games_won INTEGER DEFAULT 0," +
                 "games_lost INTEGER DEFAULT 0," +
+                "runner_wins INTEGER DEFAULT 0," +
+                "hunter_wins INTEGER DEFAULT 0," +
+                "dragon_kills INTEGER DEFAULT 0," +
                 "hunter_kills INTEGER DEFAULT 0," +
                 "hunter_deaths INTEGER DEFAULT 0," +
                 "survivor_escapes INTEGER DEFAULT 0," +
@@ -142,6 +166,9 @@ public class DatabaseManager {
                 "games_played INT DEFAULT 0," +
                 "games_won INT DEFAULT 0," +
                 "games_lost INT DEFAULT 0," +
+                "runner_wins INT DEFAULT 0," +
+                "hunter_wins INT DEFAULT 0," +
+                "dragon_kills INT DEFAULT 0," +
                 "hunter_kills INT DEFAULT 0," +
                 "hunter_deaths INT DEFAULT 0," +
                 "survivor_escapes INT DEFAULT 0," +
@@ -151,6 +178,9 @@ public class DatabaseManager {
                 "updated_at BIGINT," +
                 "INDEX idx_name (name)," +
                 "INDEX idx_games_won (games_won)," +
+                "INDEX idx_runner_wins (runner_wins)," +
+                "INDEX idx_hunter_wins (hunter_wins)," +
+                "INDEX idx_dragon_kills (dragon_kills)," +
                 "INDEX idx_hunter_kills (hunter_kills)," +
                 "INDEX idx_survivor_escapes (survivor_escapes)" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";

@@ -11,14 +11,14 @@ import org.bukkit.ChatColor;
 public enum PlayerRole {
     
     /**
-     * 猎人 - 追捕逃生者
+     * 猎人 - 追捕逃亡者
      */
     HUNTER("猎人", "Hunter", ChatColor.RED),
     
     /**
-     * 逃生者 - 躲避猎人并逃脱
+     * 逃亡者 - 击败末影龙获胜
      */
-    SURVIVOR("逃生者", "Survivor", ChatColor.GREEN),
+    RUNNER("逃亡者", "Runner", ChatColor.GREEN),
     
     /**
      * 观战者 - 观看游戏
@@ -78,10 +78,19 @@ public enum PlayerRole {
     }
     
     /**
-     * 是否是逃生者
+     * 是否是逃亡者
      */
+    public boolean isRunner() {
+        return this == RUNNER;
+    }
+    
+    /**
+     * 是否是逃生者（兼容旧代码）
+     * @deprecated 使用 isRunner() 代替
+     */
+    @Deprecated
     public boolean isSurvivor() {
-        return this == SURVIVOR;
+        return this == RUNNER;
     }
     
     /**
@@ -92,9 +101,9 @@ public enum PlayerRole {
     }
     
     /**
-     * 是否是游戏中的角色（猎人或逃生者）
+     * 是否是游戏中的角色（猎人或逃亡者）
      */
     public boolean isPlaying() {
-        return this == HUNTER || this == SURVIVOR;
+        return this == HUNTER || this == RUNNER;
     }
 }

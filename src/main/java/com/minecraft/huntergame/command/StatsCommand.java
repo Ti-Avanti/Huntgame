@@ -58,6 +58,15 @@ public class StatsCommand implements CommandExecutor {
             case "escapes":
                 showTopEscapes(player);
                 break;
+            case "runner":
+                showTopRunnerWins(player);
+                break;
+            case "hunter":
+                showTopHunterWins(player);
+                break;
+            case "dragon":
+                showTopDragonKills(player);
+                break;
             default:
                 // 显示指定玩家的统计
                 Player target = plugin.getServer().getPlayer(args[0]);
@@ -84,19 +93,19 @@ public class StatsCommand implements CommandExecutor {
         }
         
         // 发送统计信息
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.title", target.getName()));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.games-played", 
-            String.valueOf(data.getGamesPlayed())));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.wins", 
-            String.valueOf(data.getWins())));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.losses", 
-            String.valueOf(data.getLosses())));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.kills", 
-            String.valueOf(data.getHunterKills())));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.deaths", 
-            String.valueOf(data.getHunterDeaths() + data.getSurvivorDeaths())));
-        viewer.sendMessage(plugin.getLanguageManager().getMessage("stats.escapes", 
-            String.valueOf(data.getSurvivorEscapes())));
+        viewer.sendMessage("§6========== §e" + target.getName() + " 的统计 §6==========");
+        viewer.sendMessage("§e游戏场次: §a" + data.getGamesPlayed());
+        viewer.sendMessage("§e总胜利: §a" + data.getWins() + " §7| §e总失败: §c" + data.getLosses());
+        viewer.sendMessage("");
+        viewer.sendMessage("§6--- Manhunt 统计 ---");
+        viewer.sendMessage("§e逃亡者胜利: §a" + data.getRunnerWins());
+        viewer.sendMessage("§e猎人胜利: §a" + data.getHunterWins());
+        viewer.sendMessage("§e击败末影龙: §d" + data.getDragonKills());
+        viewer.sendMessage("");
+        viewer.sendMessage("§6--- 战斗统计 ---");
+        viewer.sendMessage("§e击杀: §a" + data.getHunterKills() + " §7| §e死亡: §c" + data.getTotalDeaths());
+        viewer.sendMessage("§eK/D比率: §a" + String.format("%.2f", data.getKDRatio()));
+        viewer.sendMessage("§e胜率: §a" + String.format("%.1f%%", data.getWinRate()));
     }
     
     /**
@@ -150,8 +159,7 @@ public class StatsCommand implements CommandExecutor {
      */
     private void showTopEscapes(Player player) {
         plugin.getStatsManager().getTopEscapes(10, list -> {
-            player.sendMessage(plugin.getLanguageManager().getMessage("leaderboard.title"));
-            player.sendMessage(plugin.getLanguageManager().getMessage("leaderboard.escapes"));
+            player.sendMessage("§6========== §e逃脱排行榜 §6==========");
             player.sendMessage("§7");
             
             if (list.isEmpty()) {
@@ -161,8 +169,70 @@ public class StatsCommand implements CommandExecutor {
             
             int rank = 1;
             for (PlayerData data : list) {
-                player.sendMessage(plugin.getLanguageManager().getMessage("leaderboard.entry", 
-                    String.valueOf(rank), data.getName(), String.valueOf(data.getSurvivorEscapes())));
+                player.sendMessage("§e#" + rank + " §a" + data.getName() + " §7- §e" + data.getSurvivorEscapes() + " 次");
+                rank++;
+            }
+        });
+    }
+    
+    /**
+     * 显示逃亡者胜利排行榜
+     */
+    private void showTopRunnerWins(Player player) {
+        plugin.getStatsManager().getTopRunnerWins(10, list -> {
+            player.sendMessage("§6========== §e逃亡者胜利排行榜 §6==========");
+            player.sendMessage("§7");
+            
+            if (list.isEmpty()) {
+                player.sendMessage("§7暂无数据");
+                return;
+            }
+            
+            int rank = 1;
+            for (PlayerData data : list) {
+                player.sendMessage("§e#" + rank + " §a" + data.getName() + " §7- §e" + data.getRunnerWins() + " 胜");
+                rank++;
+            }
+        });
+    }
+    
+    /**
+     * 显示猎人胜利排行榜
+     */
+    private void showTopHunterWins(Player player) {
+        plugin.getStatsManager().getTopHunterWins(10, list -> {
+            player.sendMessage("§6========== §e猎人胜利排行榜 §6==========");
+            player.sendMessage("§7");
+            
+            if (list.isEmpty()) {
+                player.sendMessage("§7暂无数据");
+                return;
+            }
+            
+            int rank = 1;
+            for (PlayerData data : list) {
+                player.sendMessage("§e#" + rank + " §a" + data.getName() + " §7- §e" + data.getHunterWins() + " 胜");
+                rank++;
+            }
+        });
+    }
+    
+    /**
+     * 显示击败末影龙排行榜
+     */
+    private void showTopDragonKills(Player player) {
+        plugin.getStatsManager().getTopDragonKills(10, list -> {
+            player.sendMessage("§6========== §e击败末影龙排行榜 §6==========");
+            player.sendMessage("§7");
+            
+            if (list.isEmpty()) {
+                player.sendMessage("§7暂无数据");
+                return;
+            }
+            
+            int rank = 1;
+            for (PlayerData data : list) {
+                player.sendMessage("§e#" + rank + " §d" + data.getName() + " §7- §e" + data.getDragonKills() + " 次");
                 rank++;
             }
         });

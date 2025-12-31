@@ -9,12 +9,12 @@ package com.minecraft.huntergame;
 public enum ServerMode {
     
     /**
-     * 多竞技场模式
+     * 单服务器模式
      * - 单服务器运行
-     * - 支持多个独立竞技场
-     * - 玩家通过命令/NPC/告示牌加入
+     * - 支持Manhunt游戏模式
+     * - 玩家通过命令加入游戏
      */
-    MULTIARENA("多竞技场模式"),
+    STANDALONE("单服务器模式"),
     
     /**
      * Bungee分布式模式
@@ -50,11 +50,11 @@ public enum ServerMode {
     }
     
     /**
-     * 是否为多竞技场模式
+     * 是否为单服务器模式
      * 
-     * @return 是否为多竞技场模式
+     * @return 是否为单服务器模式
      */
-    public boolean isMultiArenaMode() {
-        return this == MULTIARENA;
+    public boolean isStandaloneMode() {
+        return this == STANDALONE;
     }
 }

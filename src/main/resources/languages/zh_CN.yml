@@ -186,3 +186,81 @@ event:
   time-day: "&e[事件] &a白天到来！"
   time-sunset: "&e[事件] &6黄昏降临..."
   time-night: "&e[事件] &8夜幕降临..."
+
+
+# ========================================
+#     Manhunt模式消息
+# ========================================
+
+# Manhunt角色
+manhunt:
+  role:
+    runner: "&a逃亡者"
+    hunter: "&c猎人"
+    spectator: "&7观战者"
+    assigned-runner: "&a你被分配为逃亡者！击败末影龙获胜！"
+    assigned-hunter: "&c你被分配为猎人！阻止逃亡者击败末影龙！"
+  
+  # 游戏流程
+  game:
+    starting: "&6游戏即将开始！"
+    prepare-start: "&e准备阶段开始！逃亡者有 &a{0} &e秒准备时间"
+    prepare-countdown: "&e准备时间剩余: &c{0} &e秒"
+    prepare-end: "&a§l准备时间结束！猎人已解除冻结！"
+    playing: "&a游戏正式开始！"
+    time-reminder: "&e游戏剩余时间: &c{0}"
+    
+  # 胜利/失败
+  victory:
+    runners-win: "&a§l逃亡者获胜！"
+    hunters-win: "&c§l猎人获胜！"
+    dragon-defeated: "&7末影龙已被击败"
+    all-eliminated: "&7所有逃亡者已被淘汰"
+    time-up: "&7游戏时间已结束"
+    
+  # 死亡/复活
+  death:
+    runner-died: "&c逃亡者 &e{0} &c死亡了！"
+    runner-respawn: "&a逃亡者 &e{0} &a复活了！剩余复活次数: &c{1}"
+    runner-eliminated: "&c逃亡者 &e{0} &c已被淘汰！"
+    hunter-died: "&c猎人 &e{0} &c死亡了！"
+    hunter-respawn: "&a猎人 &e{0} &a在出生点复活了！"
+    no-respawns: "&c你没有复活次数了！"
+    respawn-delay: "&e你将在 &c{0} &e秒后复活..."
+    
+  # 追踪指南针
+  tracker:
+    updated: "&a指南针已更新！指向: &e{0}"
+    no-target: "&c没有可追踪的目标！"
+    cooldown: "&c指南针冷却中！剩余: &e{0} &c秒"
+    cross-dimension: "&e目标在 &a{0} &e维度，距离: &c{1}m"
+    same-dimension: "&e目标距离: &c{0}m"
+    
+  # 维度传送
+  dimension:
+    entered-nether: "&e{0} 进入了下界！"
+    entered-end: "&e{0} 进入了末地！"
+    returned-overworld: "&e{0} 返回了主世界！"
+    
+  # 观战
+  spectator:
+    mode-enabled: "&7你现在是观战者"
+    cannot-interact: "&c观战者无法与世界互动！"
+    
+  # 命令消息
+  command:
+    game-created: "&a游戏已创建: &e{0}"
+    game-started: "&a游戏已开始: &e{0}"
+    game-stopped: "&c游戏已停止: &e{0}"
+    not-enough-players: "&c玩家数量不足！需要至少 &e{0} &c名玩家"
+    already-started: "&c游戏已经开始了！"
+    not-started: "&c游戏还未开始！"
+    spawn-set: "&a出生点已设置"
+    world-set: "&a游戏世界已设置为: &e{0}"
+    
+  # 事件消息
+  event:
+    random-effect: "&a§l[事件] &e玩家 &b{0} &e获得了 &a{1} &e效果！"
+    random-teleport: "&d§l[事件] &e玩家 &b{0} &e被随机传送了！"
+    weather-change: "&b§l[事件] &e天气变为 &a{0}&e！"
+    time-change: "&b§l[事件] &e时间变为 &a{0}&e！"

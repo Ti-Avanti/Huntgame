@@ -171,3 +171,81 @@ event:
   time-day: "&e[Event] &aDay has arrived!"
   time-sunset: "&e[Event] &6Sunset is falling..."
   time-night: "&e[Event] &8Night has fallen..."
+
+
+# ========================================
+#     Manhunt Mode Messages
+# ========================================
+
+# Manhunt Roles
+manhunt:
+  role:
+    runner: "&aRunner"
+    hunter: "&cHunter"
+    spectator: "&7Spectator"
+    assigned-runner: "&aYou are a Runner! Defeat the Ender Dragon to win!"
+    assigned-hunter: "&cYou are a Hunter! Stop the Runners from defeating the Ender Dragon!"
+  
+  # Game Flow
+  game:
+    starting: "&6Game is starting!"
+    prepare-start: "&ePreparation phase! Runners have &a{0} &eseconds to prepare"
+    prepare-countdown: "&ePreparation time remaining: &c{0} &eseconds"
+    prepare-end: "&a§lPreparation ended! Hunters are released!"
+    playing: "&aGame officially started!"
+    time-reminder: "&eTime remaining: &c{0}"
+    
+  # Victory/Defeat
+  victory:
+    runners-win: "&a§lRunners Win!"
+    hunters-win: "&c§lHunters Win!"
+    dragon-defeated: "&7Ender Dragon has been defeated"
+    all-eliminated: "&7All runners have been eliminated"
+    time-up: "&7Time is up"
+    
+  # Death/Respawn
+  death:
+    runner-died: "&cRunner &e{0} &cdied!"
+    runner-respawn: "&aRunner &e{0} &arespawned! Respawns left: &c{1}"
+    runner-eliminated: "&cRunner &e{0} &chas been eliminated!"
+    hunter-died: "&cHunter &e{0} &cdied!"
+    hunter-respawn: "&aHunter &e{0} &arespawned at spawn!"
+    no-respawns: "&cYou have no respawns left!"
+    respawn-delay: "&eYou will respawn in &c{0} &eseconds..."
+    
+  # Tracker Compass
+  tracker:
+    updated: "&aCompass updated! Pointing to: &e{0}"
+    no-target: "&cNo target to track!"
+    cooldown: "&cCompass on cooldown! Remaining: &e{0} &cseconds"
+    cross-dimension: "&eTarget in &a{0} &edimension, distance: &c{1}m"
+    same-dimension: "&eTarget distance: &c{0}m"
+    
+  # Dimension Travel
+  dimension:
+    entered-nether: "&e{0} entered the Nether!"
+    entered-end: "&e{0} entered the End!"
+    returned-overworld: "&e{0} returned to the Overworld!"
+    
+  # Spectator
+  spectator:
+    mode-enabled: "&7You are now a spectator"
+    cannot-interact: "&cSpectators cannot interact with the world!"
+    
+  # Command Messages
+  command:
+    game-created: "&aGame created: &e{0}"
+    game-started: "&aGame started: &e{0}"
+    game-stopped: "&cGame stopped: &e{0}"
+    not-enough-players: "&cNot enough players! Need at least &e{0} &cplayers"
+    already-started: "&cGame has already started!"
+    not-started: "&cGame has not started yet!"
+    spawn-set: "&aSpawn point set"
+    world-set: "&aGame world set to: &e{0}"
+    
+  # Event Messages
+  event:
+    random-effect: "&a§l[Event] &ePlayer &b{0} &egot &a{1} &eeffect!"
+    random-teleport: "&d§l[Event] &ePlayer &b{0} &ewas randomly teleported!"
+    weather-change: "&b§l[Event] &eWeather changed to &a{0}&e!"
+    time-change: "&b§l[Event] &eTime changed to &a{0}&e!"

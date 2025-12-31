@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
  * 处理 /hgleave 命令
  * 
  * @author YourName
- * @version 1.0.0
+ * @version 2.0.0 - Manhunt模式
  */
 public class LeaveCommand implements CommandExecutor {
     
@@ -42,7 +42,9 @@ public class LeaveCommand implements CommandExecutor {
             return true;
         }
         
-        plugin.getArenaManager().leaveArena(player);
+        // TODO: 实现Manhunt游戏离开逻辑
+        player.sendMessage("§c游戏离开功能将在Manhunt模式实现后可用");
+        
         return true;
     }
 }
