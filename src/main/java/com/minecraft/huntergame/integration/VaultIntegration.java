@@ -74,6 +74,11 @@ public class VaultIntegration {
             return false;
         }
         
+        if (amount <= 0) {
+            plugin.getLogger().warning("尝试给予玩家 " + player.getName() + " 无效金额: " + amount);
+            return false;
+        }
+        
         try {
             economy.depositPlayer(player, amount);
             return true;
@@ -96,8 +101,14 @@ public class VaultIntegration {
             return false;
         }
         
+        if (amount <= 0) {
+            plugin.getLogger().warning("尝试扣除玩家 " + player.getName() + " 无效金额: " + amount);
+            return false;
+        }
+        
         try {
             if (!economy.has(player, amount)) {
+                plugin.getLogger().warning("玩家 " + player.getName() + " 余额不足: 需要 " + amount + ", 拥有 " + economy.getBalance(player));
                 return false;
             }
             

@@ -1,0 +1,138 @@
+# ========================================
+#     计分板配置
+# ========================================
+
+# 是否启用计分板
+enabled: true
+
+# 更新间隔(tick, 20tick=1秒)
+update-interval: 20
+
+# ========================================
+#     游戏中计分板配置
+# ========================================
+game:
+  # 计分板标题
+  title: "&6&lMANHUNT"
+  
+  # 显示内容配置
+  display:
+    # 是否显示游戏状态
+    show-state: true
+    # 是否显示角色
+    show-role: true
+    # 是否显示复活次数
+    show-respawns: true
+    # 是否显示存活人数
+    show-alive-count: true
+    # 是否显示游戏时间
+    show-time: true
+  
+  # 自定义行配置（从上到下显示）
+  lines:
+    # 空行
+    - ""
+    # 游戏状态行
+    - "&7状态: &e{state}"
+    # 角色行
+    - "&7角色: {role_color}{role}"
+    # 空行
+    - " "
+    # 复活次数行（仅逃亡者显示）
+    - "&7复活: &a{respawns}&7/&a{max_respawns}"
+    # 存活人数行
+    - "&7逃亡者: &a{alive_runners}&7/&a{total_runners}"
+    - "&7猎人: &c{alive_hunters}&7/&a{total_hunters}"
+    # 空行
+    - "  "
+    # 游戏时间行
+    - "&7时间: &e{time}"
+    # 空行
+    - "   "
+
+# ========================================
+#     大厅等待计分板配置
+# ========================================
+lobby:
+  # 是否启用大厅计分板
+  enabled: true
+  
+  # 计分板标题
+  title: "&6&lMANHUNT &7- &e等待中"
+  
+  # 自定义行配置
+  lines:
+    - ""
+    - "&7模式: &eManhunt"
+    - ""
+    - "&7玩家: &a{player_count}&7/&a{max_players}"
+    - ""
+    - "&7状态: &e{status}"
+    - ""
+    - "&7服务器: &e{server}"
+    - ""
+
+# ========================================
+#     匹配中计分板配置
+# ========================================
+matching:
+  # 是否启用匹配计分板
+  enabled: true
+  
+  # 计分板标题
+  title: "&6&lMANHUNT &7- &a匹配中"
+  
+  # 自定义行配置
+  lines:
+    - ""
+    - "&7玩家: &a{player_count}&7/&a{max_players}"
+    - ""
+    - "&7倒计时: &e{countdown}秒"
+    - ""
+    - "&7准备中..."
+    - ""
+
+# ========================================
+#     状态文本配置
+# ========================================
+states:
+  WAITING: "&e等待中"
+  MATCHING: "&a匹配中"
+  PREPARING: "&6准备中"
+  PLAYING: "&c进行中"
+  ENDING: "&7结束中"
+
+# 角色文本配置
+roles:
+  RUNNER:
+    name: "逃亡者"
+    color: "&a"
+  HUNTER:
+    name: "猎人"
+    color: "&c"
+  SPECTATOR:
+    name: "观战者"
+    color: "&7"
+
+# ========================================
+#     变量说明
+# ========================================
+# 游戏中可用变量:
+#   {state} - 游戏状态
+#   {role} - 玩家角色
+#   {role_color} - 角色颜色
+#   {respawns} - 剩余复活次数
+#   {max_respawns} - 最大复活次数
+#   {alive_runners} - 存活逃亡者数
+#   {total_runners} - 总逃亡者数
+#   {alive_hunters} - 存活猎人数
+#   {total_hunters} - 总猎人数
+#   {time} - 游戏时间
+#   {remaining_time} - 剩余时间
+#
+# 大厅/匹配可用变量:
+#   {player_count} - 当前玩家数
+#   {max_players} - 最大玩家数
+#   {status} - 状态文本
+#   {countdown} - 倒计时
+#   {server} - 服务器名称

@@ -106,7 +106,7 @@ public class RedisManager {
             serverData.put("name", serverName);
             serverData.put("status", "ONLINE");
             serverData.put("players", "0");
-            serverData.put("maxPlayers", String.valueOf(plugin.getMainConfig().getMaxPlayers()));
+            serverData.put("maxPlayers", String.valueOf(plugin.getManhuntConfig().getMaxPlayers()));
             serverData.put("timestamp", String.valueOf(System.currentTimeMillis()));
             
             jedis.hmset(key, serverData);

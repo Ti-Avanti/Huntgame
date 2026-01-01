@@ -1,0 +1,189 @@
+# ========================================
+#     消息配置文件
+# ========================================
+
+# 消息前缀
+prefix: "&6[HunterGame] &r"
+
+# ========================================
+#     通用消息
+# ========================================
+common:
+  no-permission: "&c你没有权限执行此命令！"
+  player-only: "&c此命令只能由玩家执行！"
+  invalid-player: "&c玩家 {player} 不存在或不在线！"
+  reload-success: "&a配置已重载！"
+  reload-failed: "&c配置重载失败！"
+
+# ========================================
+#     游戏消息
+# ========================================
+game:
+  # 加入游戏
+  join:
+    success: "&a你已加入游戏！"
+    already-in-game: "&c你已经在游戏中了！"
+    game-full: "&c游戏已满！"
+    game-started: "&c游戏已经开始，无法加入！"
+    
+  # 离开游戏
+  leave:
+    success: "&a你已离开游戏！"
+    not-in-game: "&c你不在游戏中！"
+    
+  # 游戏开始
+  start:
+    countdown: "&e游戏将在 &c{seconds} &e秒后开始！"
+    started: "&a游戏开始！"
+    prepare-time: "&e逃亡者有 &a{seconds} &e秒准备时间"
+    prepare-end: "&a准备时间结束！猎人开始追捕！"
+    
+  # 游戏结束
+  end:
+    runners-win: "&a&l逃亡者获胜！"
+    hunters-win: "&c&l猎人获胜！"
+    dragon-defeated: "&7末影龙已被击败"
+    all-runners-eliminated: "&7所有逃亡者已被淘汰"
+    game-time: "&e游戏时长: &a{time}"
+    
+  # 匹配系统
+  matching:
+    started: "&a匹配开始！等待更多玩家加入..."
+    countdown: "&e匹配倒计时: &c{seconds} &e秒"
+    timeout: "&c匹配超时！"
+    cancelled: "&c人数不足，游戏取消"
+    full: "&a人数已满，游戏即将开始！"
+
+# ========================================
+#     角色消息
+# ========================================
+role:
+  assigned:
+    runner: "&a你是逃亡者！击败末影龙获胜！"
+    hunter: "&c你是猎人！消灭所有逃亡者获胜！"
+    spectator: "&7你是观战者！"
+    
+  death:
+    runner: "&c逃亡者 &e{player} &c被淘汰了！"
+    hunter: "&c猎人 &e{player} &c死亡了！"
+    
+  respawn:
+    success: "&a你已复活！剩余复活次数: &e{respawns}"
+    no-respawns: "&c你已用完所有复活次数！"
+    countdown: "&e{seconds} 秒后复活..."
+
+# ========================================
+#     追踪指南针消息
+# ========================================
+tracker:
+  updated: "&a指南针已更新！指向: &e{target}"
+  cooldown: "&c指南针冷却中！剩余: &e{seconds} &c秒"
+  no-target: "&c没有可追踪的目标！"
+  switched: "&a已切换目标: &e{target}"
+  cross-dimension: "&e目标在 &c{dimension}"
+
+# ========================================
+#     统计消息
+# ========================================
+stats:
+  header: "&6&l========== &e{player} 的统计 &6&l=========="
+  total-games: "&7总游戏数: &e{games}"
+  runner-wins: "&a逃亡者胜利: &e{wins}"
+  hunter-wins: "&c猎人胜利: &e{wins}"
+  kills: "&7击杀数: &e{kills}"
+  deaths: "&7死亡数: &e{deaths}"
+  kd-ratio: "&7K/D比: &e{ratio}"
+  dragon-kills: "&d末影龙击杀: &e{kills}"
+  play-time: "&7游戏时长: &e{time}"
+  footer: "&6&l================================"
+
+# ========================================
+#     队伍消息
+# ========================================
+party:
+  created: "&a队伍已创建！"
+  disbanded: "&c队伍已解散！"
+  joined: "&a{player} 加入了队伍！"
+  left: "&c{player} 离开了队伍！"
+  invited: "&a你邀请了 &e{player} &a加入队伍！"
+  invite-received: "&e{player} &a邀请你加入队伍！"
+  invite-expired: "&c邀请已过期！"
+  invite-accepted: "&a你加入了 &e{player} &a的队伍！"
+  invite-declined: "&c你拒绝了邀请！"
+  already-in-party: "&c你已经在队伍中了！"
+  not-in-party: "&c你不在队伍中！"
+  not-leader: "&c你不是队长！"
+  party-full: "&c队伍已满！"
+
+# ========================================
+#     奖励消息
+# ========================================
+reward:
+  money: "&a你获得了 &e{amount} &a金币！"
+  win: "&a胜利奖励: &e{amount} &a金币"
+  lose: "&7参与奖励: &e{amount} &a金币"
+  kill: "&a击杀奖励: &e{amount} &a金币"
+
+# ========================================
+#     管理员消息
+# ========================================
+admin:
+  setup:
+    lobby-set: "&a大厅位置已设置！"
+    spawn-set: "&a出生点已设置！"
+    world-created: "&a游戏世界已创建: &e{world}"
+    world-deleted: "&a游戏世界已删除: &e{world}"
+    
+  game:
+    force-start: "&a强制开始游戏: &e{game}"
+    force-stop: "&a强制停止游戏: &e{game}"
+    game-not-found: "&c游戏不存在: &e{game}"
+
+# ========================================
+#     错误消息
+# ========================================
+error:
+  world-load-failed: "&c世界加载失败: &e{world}"
+  world-create-failed: "&c世界创建失败: &e{world}"
+  database-error: "&c数据库错误！请联系管理员"
+  command-error: "&c命令执行失败！"
+  teleport-failed: "&c传送失败！"
+  
+# ========================================
+#     提示消息
+# ========================================
+tips:
+  compass-usage: "&7右键点击指南针更新目标"
+  compass-switch: "&7潜行+右键切换目标"
+  spectator-mode: "&7你现在是观战者，可以自由飞行"
+  prepare-time: "&7准备时间内猎人无法移动"
+  respawn-limit: "&7你还有 &e{respawns} &7次复活机会"
+
+# ========================================
+#     广播消息
+# ========================================
+broadcast:
+  game-starting: "&e游戏 &a{game} &e即将开始！"
+  game-ended: "&e游戏 &a{game} &e已结束！"
+  player-joined: "&e{player} &a加入了游戏"
+  player-left: "&e{player} &c离开了游戏"
+  dragon-spawned: "&d末影龙已刷新！"
+  dragon-defeated: "&d末影龙被击败了！"
+
+# ========================================
+#     帮助消息
+# ========================================
+help:
+  header: "&6&l========== HunterGame 帮助 &6&l=========="
+  commands:
+    - "&e/hg join &7- 加入游戏"
+    - "&e/hg leave &7- 离开游戏"
+    - "&e/hg stats [玩家] &7- 查看统计"
+    - "&e/party create &7- 创建队伍"
+    - "&e/party invite <玩家> &7- 邀请玩家"
+    - "&e/party leave &7- 离开队伍"
+  admin-commands:
+    - "&c/hgsetup lobby &7- 设置大厅"
+    - "&c/hgsetup spawn &7- 设置出生点"
+    - "&c/hgreload &7- 重载配置"
+  footer: "&6&l================================"

@@ -26,11 +26,6 @@ commands:
     usage: /<command> [spawn|world|info] <游戏ID>
     permission: huntergame.admin.setup
   
-  hgreload:
-    description: 重载配置命令
-    usage: /<command>
-    permission: huntergame.admin.reload
-  
   party:
     description: 队伍命令
     usage: /<command> [create|disband|invite|accept|decline|leave|kick|list|chat|info]

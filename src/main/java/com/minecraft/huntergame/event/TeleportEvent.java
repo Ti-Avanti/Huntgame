@@ -47,12 +47,18 @@ public class TeleportEvent extends GameEvent {
         int offsetZ = random.nextInt(maxDistance * 2) - maxDistance;
         
         // 计算新位置
-        Location newLoc = new Location(
-            world,
-            currentLoc.getX() + offsetX,
-            world.getHighestBlockYAt((int)(currentLoc.getX() + offsetX), (int)(currentLoc.getZ() + offsetZ)) + 1,
-            currentLoc.getZ() + offsetZ
-        );
+        int newX = (int)(currentLoc.getX() + offsetX);
+        int newZ = (int)(currentLoc.getZ() + offsetZ);
+        int newY = world.getHighestBlockYAt(newX, newZ) + 1;
+        
+        // 安全检查：确保Y坐标在有效范围内
+        if (newY < world.getMinHeight()) {
+            newY = world.getMinHeight() + 1;
+        } else if (newY > world.getMaxHeight() - 2) {
+            newY = world.getMaxHeight() - 2;
+        }
+        
+        Location newLoc = new Location(world, newX + 0.5, newY, newZ + 0.5, currentLoc.getYaw(), currentLoc.getPitch());
         
         // 传送玩家
         target.teleport(newLoc);

@@ -74,25 +74,42 @@ public class ManhuntListener implements Listener {
      * 处理逃亡者死亡
      */
     private void handleRunnerDeath(ManhuntGame game, Player player, PlayerDeathEvent event) {
-        // 检查是否还有复活次数
-        if (game.hasRespawns(player.getUniqueId())) {
-            // 还有复活次数，延迟复活
-            int remaining = game.getRemainingRespawns(player.getUniqueId());
+        // 取消死亡掉落（可选）
+        event.setKeepInventory(false);
+        event.setKeepLevel(false);
+        
+        // 获取当前复活次数
+        int remaining = game.getRemainingRespawns(player.getUniqueId());
+        
+        // 检查是否还能复活(复活次数>0时可以复活)
+        if (remaining > 0) {
+            // 减少复活次数
             game.decreaseRespawns(player.getUniqueId());
+            int newRemaining = game.getRemainingRespawns(player.getUniqueId());
             
             // 广播消息
             broadcastToGame(game, ChatColor.YELLOW + "逃亡者 " + player.getName() + 
-                " 死亡！剩余复活次数: " + (remaining - 1));
+                " 死亡！剩余复活次数: " + newRemaining);
             
-            // 延迟复活
-            int respawnDelay = plugin.getManhuntConfig().getRespawnDelay();
+            // 立即复活（不显示重生界面）
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline()) {
+                if (player.isOnline() && player.isDead()) {
+                    // 直接复活玩家
                     player.spigot().respawn();
-                    player.sendMessage(ChatColor.GREEN + "你已复活！剩余复活次数: " + 
-                        game.getRemainingRespawns(player.getUniqueId()));
+                    
+                    // 传送到出生点
+                    if (game.getSpawnLocation() != null) {
+                        player.teleport(game.getSpawnLocation());
+                    }
+                    
+                    // 恢复状态
+                    player.setHealth(player.getMaxHealth());
+                    player.setFoodLevel(20);
+                    player.setFireTicks(0);
+                    
+                    player.sendMessage(ChatColor.GREEN + "你已复活！剩余复活次数: " + newRemaining);
                 }
-            }, respawnDelay * 20L);
+            }, 1L); // 立即执行（下一个tick）
             
         } else {
             // 没有复活次数，淘汰
@@ -103,6 +120,14 @@ public class ManhuntListener implements Listener {
                 " 已被淘汰！");
             
             player.sendMessage(ChatColor.RED + "你已被淘汰，进入观战模式");
+            
+            // 立即复活并设置为观战模式
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && player.isDead()) {
+                    player.spigot().respawn();
+                    player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                }
+            }, 1L);
             
             // 检查游戏是否结束
             if (game.shouldEnd()) {
@@ -115,20 +140,33 @@ public class ManhuntListener implements Listener {
      * 处理猎人死亡
      */
     private void handleHunterDeath(ManhuntGame game, Player player, PlayerDeathEvent event) {
+        // 取消死亡掉落（可选）
+        event.setKeepInventory(false);
+        event.setKeepLevel(false);
+        
         // 猎人死亡后在出生点复活
         broadcastToGame(game, ChatColor.YELLOW + "猎人 " + player.getName() + " 死亡");
         
-        // 延迟复活
+        // 立即复活（不显示重生界面）
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline() && game.getSpawnLocation() != null) {
+            if (player.isOnline() && player.isDead() && game.getSpawnLocation() != null) {
+                // 直接复活玩家
                 player.spigot().respawn();
+                
+                // 传送到出生点
                 player.teleport(game.getSpawnLocation());
+                
+                // 恢复状态
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.setFireTicks(0);
+                
                 player.sendMessage(ChatColor.GREEN + "你已在出生点复活");
                 
                 // 重新给予追踪指南针
                 plugin.getTrackerManager().giveTrackerCompass(player, game);
             }
-        }, 20L); // 1秒后复活
+        }, 1L); // 立即执行（下一个tick）
     }
     
     /**
@@ -235,7 +273,7 @@ public class ManhuntListener implements Listener {
     /**
      * 监听玩家移动事件（准备阶段冻结猎人）
      */
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
         
@@ -266,8 +304,9 @@ public class ManhuntListener implements Listener {
         // 取消移动
         event.setCancelled(true);
         
-        // 提示玩家
-        if (System.currentTimeMillis() % 3000 < 50) { // 每3秒提示一次
+        // 提示玩家（使用更可靠的方式）
+        long currentTime = System.currentTimeMillis();
+        if (currentTime % 3000 < 100) { // 每3秒提示一次
             player.sendMessage(ChatColor.RED + "准备阶段，猎人无法移动！");
         }
     }

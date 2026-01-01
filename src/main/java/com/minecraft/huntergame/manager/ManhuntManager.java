@@ -7,6 +7,7 @@ import com.minecraft.huntergame.game.PlayerRole;
 import com.minecraft.huntergame.models.PlayerData;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -46,13 +47,21 @@ public class ManhuntManager {
     public ManhuntGame createGame(String worldName) {
         String gameId = generateGameId();
         ManhuntGame game = new ManhuntGame(plugin, gameId, worldName);
-        games.put(gameId, game);
-        
-        // 同步游戏状态到Redis（如果启用Bungee模式）
-        syncGameStateToRedis(game);
+        registerGame(game);
         
         plugin.getLogger().info("创建新游戏: " + gameId + " (世界: " + worldName + ")");
         return game;
+    }
+    
+    /**
+     * 注册游戏到管理器
+     * 用于Builder模式创建的游戏
+     */
+    public void registerGame(ManhuntGame game) {
+        games.put(game.getGameId(), game);
+        
+        // 同步游戏状态到Redis（如果启用Bungee模式）
+        syncGameStateToRedis(game);
     }
     
     /**
@@ -68,8 +77,16 @@ public class ManhuntManager {
     public void removeGame(String gameId) {
         ManhuntGame game = games.remove(gameId);
         if (game != null) {
-            // 清理玩家映射
+            // 移除所有玩家的计分板
             for (UUID uuid : game.getAllPlayers()) {
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    plugin.getSidebarManager().removeMatchingSidebar(player);
+                    plugin.getSidebarManager().removeLobbySidebar(player);
+                    plugin.getSidebarManager().removeSidebar(player);
+                }
+                
+                // 清理玩家映射
                 playerGameMap.remove(uuid);
             }
             
@@ -107,23 +124,57 @@ public class ManhuntManager {
      * 玩家加入游戏
      */
     public boolean joinGame(Player player, String gameId) {
+        plugin.debug("joinGame called: player=" + player.getName() + ", gameId=" + gameId);
+        
         ManhuntGame game = games.get(gameId);
         if (game == null) {
+            plugin.debug("Game not found: " + gameId);
             return false;
         }
         
         // 检查玩家是否已在其他游戏中
         if (isInGame(player)) {
+            plugin.debug("Player already in game: " + player.getName());
             return false;
         }
         
         // 添加玩家到游戏
-        if (game.addPlayer(player.getUniqueId())) {
+        boolean added = game.addPlayer(player.getUniqueId());
+        plugin.debug("addPlayer result: " + added);
+        
+        if (added) {
             playerGameMap.put(player.getUniqueId(), gameId);
             plugin.getLogger().info("玩家 " + player.getName() + " 加入游戏 " + gameId);
+            plugin.debug("Player successfully joined game");
+            
+            // 根据游戏状态创建对应的计分板
+            com.minecraft.huntergame.game.GameState state = game.getState();
+            plugin.debug("Game state: " + state + ", creating appropriate sidebar");
+            
+            if (state == com.minecraft.huntergame.game.GameState.WAITING) {
+                // 等待状态 - 显示大厅计分板
+                plugin.getSidebarManager().createLobbySidebar(player);
+                plugin.debug("Created lobby sidebar for: " + player.getName());
+                
+                // 给予匹配道具（等待状态下玩家已在房间中）
+                plugin.getHotbarManager().giveMatchingItems(player, game);
+            } else if (state == com.minecraft.huntergame.game.GameState.MATCHING) {
+                // 匹配状态 - 显示匹配计分板
+                plugin.getSidebarManager().createMatchingSidebar(player, game);
+                plugin.debug("Created matching sidebar for: " + player.getName());
+                
+                // 给予匹配道具
+                plugin.getHotbarManager().giveMatchingItems(player, game);
+            } else if (state.isPlaying()) {
+                // 游戏进行中 - 显示游戏计分板
+                plugin.getSidebarManager().createSidebar(player, game);
+                plugin.debug("Created game sidebar for: " + player.getName());
+            }
+            
             return true;
         }
         
+        plugin.debug("Failed to add player to game");
         return false;
     }
     
@@ -137,6 +188,26 @@ public class ManhuntManager {
             if (game != null) {
                 game.removePlayer(player.getUniqueId());
                 plugin.getLogger().info("玩家 " + player.getName() + " 离开游戏 " + gameId);
+                
+                // 传送玩家到大厅
+                teleportPlayerToLobby(player);
+                
+                // 移除玩家的所有侧边栏
+                plugin.getSidebarManager().removeMatchingSidebar(player);
+                plugin.getSidebarManager().removeLobbySidebar(player);
+                plugin.getSidebarManager().removeSidebar(player);
+                
+                // 恢复玩家状态
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.getInventory().clear();
+                player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+                
+                // 给予大厅道具
+                plugin.getHotbarManager().giveLobbyItems(player);
+                
+                // 创建大厅计分板
+                plugin.getSidebarManager().createLobbySidebar(player);
                 
                 // 检查游戏是否应该结束
                 if (game.shouldEnd()) {
@@ -168,53 +239,100 @@ public class ManhuntManager {
         return playerGameMap.containsKey(player.getUniqueId());
     }
     
+    /**
+     * 从游戏中移除玩家
+     */
+    public void removePlayer(Player player, ManhuntGame game) {
+        if (player == null || game == null) {
+            return;
+        }
+        
+        UUID uuid = player.getUniqueId();
+        
+        // 从游戏中移除玩家
+        game.removePlayer(uuid);
+        
+        // 从玩家-游戏映射中移除
+        playerGameMap.remove(uuid);
+        
+        plugin.getLogger().info("玩家 " + player.getName() + " 已离开游戏 " + game.getGameId());
+    }
+    
     // ==================== 游戏流程控制 ====================
     
     /**
      * 开始游戏
      */
     public void startGame(String gameId) {
+        plugin.debug("startGame called: gameId=" + gameId);
+        
         ManhuntGame game = games.get(gameId);
         if (game == null) {
+            plugin.debug("Game not found: " + gameId);
             return;
         }
         
+        plugin.debug("Game state: " + game.getState());
+        
         // 获取所有玩家
         List<UUID> players = game.getAllPlayers();
+        plugin.debug("Player count: " + players.size());
+        
         if (players.isEmpty()) {
             plugin.getLogger().warning("无法开始游戏 " + gameId + ": 没有玩家");
+            plugin.debug("No players in game");
             return;
         }
         
         // 分配角色
+        plugin.debug("Assigning roles...");
         plugin.getRoleManager().assignRoles(game, players);
         
         // 通知角色
+        plugin.debug("Notifying roles...");
         plugin.getRoleManager().notifyRoles(game);
+        
+        // 随机选择安全的出生点
+        plugin.debug("Finding random safe spawn location...");
+        World gameWorld = plugin.getServer().getWorld(game.getWorldName());
+        if (gameWorld != null) {
+            Location spawnLocation = com.minecraft.huntergame.util.LocationUtil.findRandomSafeSpawn(gameWorld, 50);
+            game.setSpawnLocation(spawnLocation);
+            plugin.getLogger().info("随机出生点: " + com.minecraft.huntergame.util.LocationUtil.formatLocation(spawnLocation));
+        }
         
         // 传送玩家到出生点
         if (game.getSpawnLocation() != null) {
+            plugin.debug("Teleporting players to spawn...");
             for (UUID uuid : players) {
                 Player player = plugin.getServer().getPlayer(uuid);
                 if (player != null && player.isOnline()) {
                     player.teleport(game.getSpawnLocation());
+                    plugin.debug("Teleported: " + player.getName());
                 }
             }
+        } else {
+            plugin.debug("WARNING: No spawn location set!");
         }
         
         // 给予初始装备
+        plugin.debug("Giving starting items...");
         plugin.getRoleManager().giveStartingItems(game);
         
         // 为所有玩家创建侧边栏
+        plugin.debug("Creating sidebars...");
         for (UUID uuid : players) {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null && player.isOnline()) {
                 plugin.getSidebarManager().createSidebar(player, game);
+                plugin.debug("Created sidebar for: " + player.getName());
             }
         }
         
         // 开始游戏（进入准备阶段）
+        plugin.debug("Starting game (entering PREPARING state)...");
         game.start();
+        plugin.debug("Game state after start: " + game.getState());
         
         // 广播准备阶段消息
         broadcastToGame(game, com.minecraft.huntergame.util.Constants.SEPARATOR);
@@ -224,12 +342,30 @@ public class ManhuntManager {
         broadcastToGame(game, com.minecraft.huntergame.util.Constants.SEPARATOR);
         
         plugin.getLogger().info("游戏 " + gameId + " 已开始");
+        plugin.debug("startGame completed successfully");
     }
     
     /**
      * 结束游戏
      */
     public void endGame(String gameId) {
+        endGame(gameId, com.minecraft.huntergame.game.GameEndReason.UNKNOWN);
+    }
+    
+    /**
+     * 结束游戏（带结束原因）
+     */
+    public void endGame(ManhuntGame game, com.minecraft.huntergame.game.GameEndReason reason) {
+        if (game == null) {
+            return;
+        }
+        endGame(game.getGameId(), reason);
+    }
+    
+    /**
+     * 结束游戏（带结束原因）
+     */
+    public void endGame(String gameId, com.minecraft.huntergame.game.GameEndReason reason) {
         ManhuntGame game = games.get(gameId);
         if (game == null) {
             return;
@@ -238,33 +374,49 @@ public class ManhuntManager {
         game.end();
         
         // 判定胜利方
-        boolean runnersWin = game.isDragonDefeated();
+        boolean runnersWin = false;
+        
+        // 根据结束原因判定胜利方
+        if (reason == com.minecraft.huntergame.game.GameEndReason.UNKNOWN) {
+            // 如果没有指定原因，使用默认逻辑
+            runnersWin = game.isDragonDefeated();
+        } else {
+            runnersWin = reason.isRunnersWin();
+        }
         
         // 显示游戏结果
         broadcastToGame(game, com.minecraft.huntergame.util.Constants.SEPARATOR);
         broadcastToGame(game, "§e§l游戏结束！");
         broadcastToGame(game, "");
         
-        if (runnersWin) {
-            broadcastToGame(game, "§a§l逃亡者获胜！");
-            broadcastToGame(game, "§7末影龙已被击败");
+        // 显示结束原因
+        if (reason.isNormalEnd()) {
+            if (runnersWin) {
+                broadcastToGame(game, "§a§l逃亡者获胜！");
+                broadcastToGame(game, "§7末影龙已被击败");
+            } else {
+                broadcastToGame(game, "§c§l猎人获胜！");
+                broadcastToGame(game, "§7所有逃亡者已被淘汰");
+            }
         } else {
-            broadcastToGame(game, "§c§l猎人获胜！");
-            broadcastToGame(game, "§7所有逃亡者已被淘汰");
+            broadcastToGame(game, reason.getDisplayName());
         }
         
         broadcastToGame(game, "");
         broadcastToGame(game, "§e游戏时长: §a" + com.minecraft.huntergame.util.TimeUtil.formatTimeChinese(game.getElapsedTime()));
         broadcastToGame(game, com.minecraft.huntergame.util.Constants.SEPARATOR);
         
-        // 更新统计数据
-        updatePlayerStats(game, runnersWin);
+        // 只有正常结束才更新统计和发放奖励
+        if (reason.isNormalEnd()) {
+            // 更新统计数据
+            updatePlayerStats(game, runnersWin);
+            
+            // 发放奖励
+            giveRewards(game, runnersWin);
+        }
         
-        // 发放奖励
-        giveRewards(game, runnersWin);
-        
-        // 传送玩家回出生点
-        teleportPlayersToSpawn(game);
+        // 先传送玩家到大厅
+        teleportPlayersToLobby(game);
         
         // 移除所有玩家的侧边栏
         for (UUID uuid : game.getAllPlayers()) {
@@ -274,14 +426,72 @@ public class ManhuntManager {
             }
         }
         
-        // TODO: 重置游戏世界
+        // 延迟重置世界，确保玩家已传送
+        if (plugin.getManhuntConfig().isResetWorldOnEnd()) {
+            String worldName = game.getWorldName();
+            plugin.getLogger().info("准备重置游戏世界: " + worldName);
+            
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                boolean success = plugin.getWorldManager().resetWorld(worldName);
+                if (success) {
+                    plugin.getLogger().info("游戏世界已重置: " + worldName);
+                } else {
+                    plugin.getLogger().warning("游戏世界重置失败: " + worldName);
+                }
+            }, 60L); // 3秒后重置（确保玩家已完全传送）
+        }
         
-        plugin.getLogger().info("游戏 " + gameId + " 已结束");
+        plugin.getLogger().info("游戏 " + gameId + " 已结束 (原因: " + reason.name() + ")");
         
         // 延迟移除游戏
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             removeGame(gameId);
         }, 200L); // 10秒后移除
+    }
+    
+    /**
+     * 取消游戏（人数不足等原因）
+     */
+    public void cancelGame(ManhuntGame game) {
+        if (game == null) {
+            return;
+        }
+        
+        String gameId = game.getGameId();
+        
+        // 通知所有玩家
+        broadcastToGame(game, "§c游戏已取消！");
+        
+        // 处理所有玩家
+        for (UUID uuid : game.getAllPlayers()) {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null && player.isOnline()) {
+                // 移除所有计分板
+                plugin.getSidebarManager().removeMatchingSidebar(player);
+                plugin.getSidebarManager().removeLobbySidebar(player);
+                plugin.getSidebarManager().removeSidebar(player);
+                
+                // 恢复玩家状态
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.getInventory().clear();
+                player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+                
+                // 给予大厅道具
+                plugin.getHotbarManager().giveLobbyItems(player);
+                
+                // 创建大厅计分板
+                plugin.getSidebarManager().createLobbySidebar(player);
+            }
+        }
+        
+        // 传送玩家到大厅
+        teleportPlayersToLobby(game);
+        
+        // 移除游戏
+        removeGame(gameId);
+        
+        plugin.getLogger().info("游戏 " + gameId + " 已取消");
     }
     
     /**
@@ -305,6 +515,47 @@ public class ManhuntManager {
      */
     public void checkAllGames() {
         for (ManhuntGame game : games.values()) {
+            // 检查匹配超时
+            if (game.isMatching()) {
+                long remainingSeconds = game.getMatchingRemainingTime();
+                
+                // 显示匹配倒计时（使用Title）
+                if (remainingSeconds == 60 || remainingSeconds == 30 || remainingSeconds == 20 ||
+                    remainingSeconds == 10 || remainingSeconds == 5 || 
+                    remainingSeconds == 3 || remainingSeconds == 2 || remainingSeconds == 1) {
+                    
+                    for (UUID uuid : game.getAllPlayers()) {
+                        Player player = plugin.getServer().getPlayer(uuid);
+                        if (player != null && player.isOnline()) {
+                            player.sendTitle(
+                                "§e§l匹配中",
+                                "§7" + remainingSeconds + "秒后自动开始 §8| §a" + game.getPlayerCount() + "§7/§a" + (game.getMaxRunners() + game.getMaxHunters()) + " §7玩家",
+                                10, 40, 10
+                            );
+                        }
+                    }
+                }
+                
+                // 检查是否达到最大人数，自动开始
+                if (game.isFull()) {
+                    broadcastToGame(game, "§a人数已满，游戏即将开始！");
+                    startGame(game.getGameId());
+                    continue;
+                }
+                
+                // 检查匹配是否超时
+                if (game.isMatchingTimeout()) {
+                    if (plugin.getManhuntConfig().isMatchingAutoStart() && game.hasMinPlayers()) {
+                        broadcastToGame(game, "§e匹配时间结束，游戏即将开始！");
+                        startGame(game.getGameId());
+                    } else {
+                        broadcastToGame(game, "§c匹配超时，人数不足，游戏取消");
+                        cancelGame(game);
+                    }
+                    continue;
+                }
+            }
+            
             // 检查准备时间倒计时
             if (game.isPreparing()) {
                 long remainingSeconds = (game.getPrepareEndTime() - System.currentTimeMillis()) / 1000;
@@ -471,29 +722,44 @@ public class ManhuntManager {
     }
     
     /**
-     * 传送玩家回出生点
+     * 传送所有玩家到大厅
      */
-    private void teleportPlayersToSpawn(ManhuntGame game) {
-        Location spawnLocation = game.getSpawnLocation();
-        if (spawnLocation == null) {
-            // 如果没有设置出生点，使用世界默认出生点
-            if (plugin.getServer().getWorlds().isEmpty()) {
-                plugin.getLogger().warning("无法传送玩家：没有可用的世界");
-                return;
-            }
-            spawnLocation = plugin.getServer().getWorlds().get(0).getSpawnLocation();
-        }
-        
+    private void teleportPlayersToLobby(ManhuntGame game) {
         for (UUID uuid : game.getAllPlayers()) {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null && player.isOnline()) {
-                player.teleport(spawnLocation);
+                teleportPlayerToLobby(player);
                 
                 // 恢复玩家状态
                 player.setHealth(player.getMaxHealth());
                 player.setFoodLevel(20);
                 player.getInventory().clear();
                 player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+            }
+        }
+    }
+    
+    /**
+     * 传送单个玩家到大厅
+     */
+    private void teleportPlayerToLobby(Player player) {
+        if (!plugin.getManhuntConfig().isLobbyEnabled()) {
+            // 如果未启用大厅，传送到主世界出生点
+            if (!plugin.getServer().getWorlds().isEmpty()) {
+                player.teleport(plugin.getServer().getWorlds().get(0).getSpawnLocation());
+            }
+            return;
+        }
+        
+        Location lobbyLocation = plugin.getManhuntConfig().getLobbyLocation();
+        if (lobbyLocation != null) {
+            player.teleport(lobbyLocation);
+            plugin.getLogger().info("玩家 " + player.getName() + " 已传送到大厅");
+        } else {
+            plugin.getLogger().warning("无法传送玩家到大厅：大厅位置未设置");
+            // 传送到主世界出生点作为备选
+            if (!plugin.getServer().getWorlds().isEmpty()) {
+                player.teleport(plugin.getServer().getWorlds().get(0).getSpawnLocation());
             }
         }
     }

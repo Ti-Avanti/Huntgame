@@ -34,6 +34,29 @@ public class PlayerJoinLeaveListener implements Listener {
         // 加载玩家数据
         plugin.getStatsManager().loadPlayerData(player);
         
+        // 延迟创建大厅计分板（确保玩家完全加载）
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            // 检查玩家是否在游戏中
+            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            
+            if (game == null) {
+                // 玩家不在游戏中，显示大厅计分板
+                plugin.getSidebarManager().createLobbySidebar(player);
+                
+                // 给予大厅快捷道具
+                plugin.getHotbarManager().giveLobbyItems(player);
+            } else {
+                // 玩家已在游戏中，根据游戏状态给予对应道具
+                com.minecraft.huntergame.game.GameState state = game.getState();
+                if (state == com.minecraft.huntergame.game.GameState.WAITING || 
+                    state == com.minecraft.huntergame.game.GameState.MATCHING) {
+                    // 等待/匹配状态 - 给予匹配道具
+                    plugin.getHotbarManager().giveMatchingItems(player, game);
+                }
+                // 游戏进行中的道具由 RoleManager 处理，这里不需要处理
+            }
+        }, 20L); // 1秒后创建
+        
         plugin.getLogger().info("玩家 " + player.getName() + " 加入服务器");
     }
     

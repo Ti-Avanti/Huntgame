@@ -307,6 +307,28 @@ public class StatsManager {
         plugin.getLogger().info("已保存 " + dataCache.size() + " 个玩家数据");
     }
     
+    /**
+     * 同步保存所有数据(用于插件关闭时)
+     */
+    public void saveAllSync() {
+        plugin.getLogger().info("正在同步保存所有玩家数据...");
+        
+        int count = 0;
+        for (UUID uuid : dataCache.keySet()) {
+            PlayerData data = dataCache.get(uuid);
+            if (data != null) {
+                try {
+                    playerRepository.save(data);
+                    count++;
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("保存玩家数据失败: " + data.getName() + " - " + ex.getMessage());
+                }
+            }
+        }
+        
+        plugin.getLogger().info("已同步保存 " + count + " 个玩家数据");
+    }
+    
     // ==================== 排行榜缓存系统 ====================
     
     // 排行榜缓存

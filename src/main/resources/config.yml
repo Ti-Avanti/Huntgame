@@ -1,111 +1,11 @@
 # ========================================
-#     猎人游戏插件配置文件
+#     猎人游戏插件主配置文件
 # ========================================
 
 # 服务器模式
 # STANDALONE - 单服务器模式(Manhunt游戏)
 # BUNGEE - Bungee分布式模式(多服务器)
 mode: STANDALONE
-
-# ========================================
-#     Manhunt游戏配置
-# ========================================
-manhunt:
-  # 玩家配置
-  players:
-    # 最小玩家数
-    min: 2
-    # 最大玩家数
-    max: 10
-    # 最大逃亡者数(1-3)
-    max-runners: 3
-    # 最大猎人数(1-5)
-    max-hunters: 5
-  
-  # 游戏配置
-  game:
-    # 准备时间(秒) - 逃亡者准备，猎人冻结
-    prepare-time: 30
-    # 最大游戏时长(秒，0=无限制)
-    max-time: 3600
-    # 逃亡者复活次数限制
-    respawn-limit: 3
-    # 复活延迟(秒)
-    respawn-delay: 5
-    # 是否允许击败凋灵获胜
-    allow-wither-victory: false
-  
-  # 追踪指南针配置
-  tracker:
-    # 指南针更新冷却时间(秒)
-    compass-cooldown: 5
-    # 是否启用跨维度追踪
-    cross-dimension: true
-    # 是否自动更新指南针
-    auto-update: true
-    # 自动更新间隔(秒)
-    auto-update-interval: 10
-  
-  # 世界管理配置
-  world:
-    # 是否使用独立游戏世界
-    use-custom: false
-    # 游戏世界名称
-    name: "manhunt_world"
-    # 世界边界大小(半径)
-    border: 5000
-    # 世界类型: DEFAULT, FLAT, AMPLIFIED
-    type: "DEFAULT"
-    # 游戏结束后是否重置世界
-    reset-on-end: true
-  
-  # 猎人能力配置(可选)
-  hunter:
-    abilities:
-      # 速度提升
-      speed-boost: false
-      speed-level: 1
-      # 力量提升
-      strength-boost: false
-      strength-level: 1
-      # 生命值提升
-      health-boost: false
-      extra-health: 4
-      # 夜视
-      night-vision: false
-  
-  # 逃亡者道具配置(可选)
-  runner:
-    start-items:
-      enabled: false
-      bread: 16
-      wood: 32
-      cobblestone: 64
-      invisibility-potion: 1
-      speed-potion: 2
-      ender-pearl: 4
-  
-  # 游戏事件配置(可选)
-  events:
-    enabled: false
-    trigger-interval: 300
-    trigger-chance: 0.3
-  
-  # 防作弊配置
-  anti-cheat:
-    # 禁用传送命令
-    disable-tp: true
-    # 禁用游戏模式命令
-    disable-gamemode: true
-    # 禁用give命令
-    disable-give: true
-    # 额外禁用的命令列表
-    disabled-commands:
-      - "tp"
-      - "teleport"
-      - "gamemode"
-      - "gm"
-      - "give"
 
 # ========================================
 #     数据库配置
@@ -169,118 +69,6 @@ redis:
   update-interval: 10
 
 # ========================================
-#     游戏配置
-# ========================================
-game:
-  # 默认游戏模式: CLASSIC 或 TEAM
-  default-mode: CLASSIC
-  
-  # 最小玩家数
-  min-players: 2
-  
-  # 最大玩家数
-  max-players: 16
-  
-  # 开始倒计时(秒)
-  start-countdown: 10
-  
-  # 游戏时长(秒)
-  game-time: 600
-  
-  # 逃脱所需时间(秒)
-  escape-time: 10
-
-# ========================================
-#     猎人配置
-# ========================================
-hunter:
-  # 经典模式猎人数量
-  classic-count: 1
-  
-  # 团队模式猎人比例(1:3表示每4个玩家有1个猎人)
-  team-ratio: 0.25
-  
-  # 猎人能力配置
-  abilities:
-    # 速度提升
-    speed-boost:
-      enabled: true
-      cooldown: 30
-      duration: 10
-      speed-level: 2
-    
-    # 追踪能力
-    tracker:
-      enabled: true
-      cooldown: 45
-      duration: 15
-      update-interval: 2
-    
-    # 夜视能力
-    night-vision:
-      enabled: true
-      cooldown: 60
-      duration: 30
-
-# ========================================
-#     逃生者配置
-# ========================================
-survivor:
-  # 初始道具
-  starting-items:
-    invisibility-potion: 1
-    speed-potion: 2
-    smoke-bomb: 1
-    decoy: 1
-  
-  # 道具配置
-  items:
-    # 隐身药水
-    invisibility-potion:
-      enabled: true
-      duration: 30
-    
-    # 速度药水
-    speed-potion:
-      enabled: true
-      duration: 15
-      speed-level: 2
-    
-    # 烟雾弹
-    smoke-bomb:
-      enabled: true
-      duration: 10
-      radius: 5
-    
-    # 诱饵
-    decoy:
-      enabled: true
-      duration: 30
-
-# ========================================
-#     奖励配置
-# ========================================
-rewards:
-  # 是否启用奖励
-  enabled: true
-  
-  # 胜利奖励
-  win:
-    money: 100
-    
-  # 失败奖励
-  lose:
-    money: 20
-    
-  # 击杀奖励(猎人)
-  kill:
-    money: 10
-    
-  # 逃脱奖励(逃生者)
-  escape:
-    money: 50
-
-# ========================================
 #     语言配置
 # ========================================
 language:
@@ -307,31 +95,6 @@ party:
   invite-expire-time: 60
 
 # ========================================
-#     游戏事件系统配置
-# ========================================
-events:
-  # 是否启用游戏事件系统
-  enabled: true
-  
-  # 事件检测间隔(秒)
-  check-interval: 60
-  
-  # 箱子刷新事件
-  chest-refill:
-    enabled: true
-    trigger-chance: 0.3
-  
-  # 道具掉落事件
-  item-drop:
-    enabled: true
-    trigger-chance: 0.2
-  
-  # 天气变化事件
-  weather-change:
-    enabled: true
-    trigger-chance: 0.15
-
-# ========================================
 #     其他配置
 # ========================================
 # 自动保存间隔(分钟)
@@ -339,3 +102,4 @@ auto-save-interval: 5
 
 # 调试模式
 debug: false
+

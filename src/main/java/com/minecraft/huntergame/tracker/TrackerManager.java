@@ -50,13 +50,17 @@ public class TrackerManager {
     public void giveTrackerCompass(Player hunter, ManhuntGame game) {
         // 创建指南针物品
         ItemStack compass = new ItemStack(Material.COMPASS);
-        ItemMeta meta = compass.getItemMeta();
+        org.bukkit.inventory.meta.CompassMeta meta = (org.bukkit.inventory.meta.CompassMeta) compass.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GREEN + "追踪指南针");
             meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "右键更新目标",
-                ChatColor.GRAY + "指向最近的逃亡者"
+                ChatColor.GRAY + "潜行+右键切换目标",
+                ChatColor.GRAY + "指向最近的逃亡者",
+                ChatColor.GRAY + "使用Lodestone追踪技术"
             ));
+            // 初始化Lodestone追踪（但不设置位置）
+            meta.setLodestoneTracked(false);
             compass.setItemMeta(meta);
         }
         
@@ -67,7 +71,10 @@ public class TrackerManager {
         TrackerCompass tracker = new TrackerCompass(hunter.getUniqueId(), game, updateCooldown);
         compasses.put(hunter.getUniqueId(), tracker);
         
-        plugin.getLogger().info("给予玩家 " + hunter.getName() + " 追踪指南针");
+        // 立即更新一次目标
+        tracker.updateTarget(hunter);
+        
+        plugin.getLogger().info("给予玩家 " + hunter.getName() + " 追踪指南针（Lodestone模式）");
     }
     
     /**
@@ -93,6 +100,13 @@ public class TrackerManager {
             return;
         }
         
+        // 检查是否潜行（切换目标）
+        if (hunter.isSneaking()) {
+            // 切换到下一个目标
+            tracker.switchToNextTarget(hunter);
+            return;
+        }
+        
         // 检查冷却
         if (tracker.isOnCooldown()) {
             hunter.sendMessage(ChatColor.RED + "冷却中，请等待 " + 
@@ -100,7 +114,7 @@ public class TrackerManager {
             return;
         }
         
-        // 更新目标
+        // 更新目标（自动选择最近的）
         tracker.updateTarget(hunter);
         
         hunter.sendMessage(ChatColor.GREEN + "已更新追踪目标");
@@ -120,18 +134,21 @@ public class TrackerManager {
             return;
         }
         
-        // 检查玩家是否持有指南针（性能优化）
+        // 检查玩家背包中是否有指南针（不仅限于手持）
         ItemStack mainHand = hunter.getInventory().getItemInMainHand();
         ItemStack offHand = hunter.getInventory().getItemInOffHand();
-        boolean hasCompass = (mainHand != null && mainHand.getType() == Material.COMPASS) ||
-                            (offHand != null && offHand.getType() == Material.COMPASS);
+        ItemStack slot0 = hunter.getInventory().getItem(0);
         
-        // 只有当玩家持有指南针时才更新（避免不必要的计算）
+        boolean hasCompass = (mainHand != null && mainHand.getType() == Material.COMPASS) ||
+                            (offHand != null && offHand.getType() == Material.COMPASS) ||
+                            (slot0 != null && slot0.getType() == Material.COMPASS);
+        
+        // 只有当玩家有指南针时才更新（避免不必要的计算）
         if (!hasCompass) {
             return;
         }
         
-        // 自动更新不受冷却限制
+        // 自动更新不受冷却限制（Lodestone模式下需要持续更新）
         tracker.updateTarget(hunter);
     }
     
@@ -151,13 +168,14 @@ public class TrackerManager {
      * 启动自动更新任务
      */
     private void startAutoUpdateTask() {
-        long interval = autoUpdateInterval * 20L; // 转换为tick
+        // 使用更短的更新间隔（1秒 = 20 ticks）以实现实时追踪
+        long interval = 20L; // 每秒更新一次
         
         plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
             updateAllCompasses();
         }, interval, interval);
         
-        plugin.getLogger().info("追踪指南针自动更新任务已启动 (间隔: " + autoUpdateInterval + "秒)");
+        plugin.getLogger().info("追踪指南针自动更新任务已启动 (Lodestone模式，间隔: 1秒)");
     }
     
     /**

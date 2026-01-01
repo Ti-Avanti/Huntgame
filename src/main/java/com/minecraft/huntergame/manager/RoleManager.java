@@ -218,7 +218,9 @@ public class RoleManager {
     
     /**
      * 给予逃亡者初始装备
+     * 抑制PotionData过时警告（为了向后兼容1.16-1.20.4版本）
      */
+    @SuppressWarnings("deprecation")
     private void giveRunnerItems(Player player) {
         // 检查是否启用逃亡者初始道具
         if (!plugin.getManhuntConfig().isRunnerStartItemsEnabled()) {

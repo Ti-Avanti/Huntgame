@@ -1,0 +1,127 @@
+# ========================================
+#     Manhunt 游戏配置
+# ========================================
+
+# 玩家配置
+players:
+  # 最小玩家数
+  min: 2
+  # 最大玩家数
+  max: 10
+  # 最大逃亡者数(1-3)
+  max-runners: 3
+  # 最大猎人数(1-5)
+  max-hunters: 5
+
+# 匹配配置
+matching:
+  # 是否启用匹配功能
+  enabled: true
+  # 匹配超时时间(秒)
+  timeout: 60
+  # 达到此人数开始匹配倒计时
+  min-players-to-start: 2
+  # 超时后是否自动开始(需要达到最小人数)
+  auto-start: true
+
+# 游戏配置
+game:
+  # 准备时间(秒) - 逃亡者准备，猎人冻结
+  prepare-time: 30
+  # 最大游戏时长(秒，0=无限制)
+  max-time: 3600
+  # 逃亡者复活次数限制
+  respawn-limit: 3
+  # 复活延迟(秒)
+  respawn-delay: 5
+  # 是否允许击败凋灵获胜
+  allow-wither-victory: false
+
+# 追踪指南针配置
+tracker:
+  # 指南针更新冷却时间(秒) - 手动右键更新的冷却
+  compass-cooldown: 5
+  # 是否启用跨维度追踪
+  cross-dimension: true
+  # 是否自动更新指南针（使用Lodestone追踪技术）
+  auto-update: true
+  # 自动更新间隔(秒) - Lodestone模式固定为1秒
+  auto-update-interval: 1
+
+# 世界管理配置
+world:
+  # 是否使用独立游戏世界（单服务器模式强制为true）
+  use-custom: true
+  # 游戏世界名称
+  name: "manhunt_world"
+  # 世界边界大小(半径)
+  border: 5000
+  # 世界类型: DEFAULT, FLAT, AMPLIFIED
+  type: "DEFAULT"
+  # 游戏结束后是否重置世界
+  reset-on-end: true
+  # 是否使用 Multiverse-Core 管理世界（需要安装 Multiverse-Core 插件）
+  # 启用后将创建独立的游戏世界（包括地狱和末地），避免影响服务器主世界
+  use-multiverse: false
+
+# 游戏大厅配置
+lobby:
+  # 是否启用大厅传送
+  enabled: true
+  # 大厅世界名称
+  world: "world"
+  # 大厅坐标(x, y, z, yaw, pitch)
+  location:
+    x: 0.0
+    y: 64.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+# 猎人能力配置(可选)
+hunter:
+  abilities:
+    # 速度提升
+    speed-boost: false
+    speed-level: 1
+    # 力量提升
+    strength-boost: false
+    strength-level: 1
+    # 生命值提升
+    health-boost: false
+    extra-health: 4
+    # 夜视
+    night-vision: false
+
+# 逃亡者道具配置(可选)
+runner:
+  start-items:
+    enabled: false
+    bread: 16
+    wood: 32
+    cobblestone: 64
+    invisibility-potion: 1
+    speed-potion: 2
+    ender-pearl: 4
+
+# 游戏事件配置(可选)
+events:
+  enabled: false
+  trigger-interval: 300
+  trigger-chance: 0.3
+
+# 防作弊配置
+anti-cheat:
+  # 禁用传送命令
+  disable-tp: true
+  # 禁用游戏模式命令
+  disable-gamemode: true
+  # 禁用give命令
+  disable-give: true
+  # 额外禁用的命令列表
+  disabled-commands:
+    - "tp"
+    - "teleport"
+    - "gamemode"
+    - "gm"
+    - "give"

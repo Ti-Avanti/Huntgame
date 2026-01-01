@@ -38,7 +38,15 @@ public class MainConfig {
      * 重载配置文件
      */
     public void reload() {
-        load();
+        // 重新加载配置文件
+        plugin.reloadConfig();
+        // 重新获取配置引用（这是关键！）
+        config = plugin.getConfig();
+        
+        // 重新验证配置
+        validate();
+        
+        plugin.getLogger().info("主配置已重载");
     }
     
     /**
@@ -47,45 +55,19 @@ public class MainConfig {
     private void validate() {
         // 验证必要的配置项
         if (!config.contains("mode")) {
-            plugin.getLogger().warning("配置项 'mode' 未找到，使用默认值: MULTIARENA");
+            plugin.getLogger().warning("配置项 'mode' 未找到，使用默认值: STANDALONE");
         }
         
-        if (!config.contains("game.min-players")) {
-            plugin.getLogger().warning("配置项 'game.min-players' 未找到");
+        if (!config.contains("database.type")) {
+            plugin.getLogger().warning("配置项 'database.type' 未找到，使用默认值: SQLITE");
         }
         
-        if (!config.contains("game.max-players")) {
-            plugin.getLogger().warning("配置项 'game.max-players' 未找到");
-        }
-        
-        // 验证数值合法性
-        int minPlayers = getMinPlayers();
-        int maxPlayers = getMaxPlayers();
-        
-        if (minPlayers < 2) {
-            plugin.getLogger().warning("最小玩家数不能小于2，已自动调整为2");
-        }
-        
-        if (maxPlayers < minPlayers) {
-            plugin.getLogger().warning("最大玩家数不能小于最小玩家数");
+        if (!config.contains("language.default")) {
+            plugin.getLogger().warning("配置项 'language.default' 未找到，使用默认值: zh_CN");
         }
     }
     
     // ==================== 游戏配置 ====================
-    
-    /**
-     * 获取最小玩家数
-     */
-    public int getMinPlayers() {
-        return Math.max(2, config.getInt("game.min-players", 2));
-    }
-    
-    /**
-     * 获取最大玩家数
-     */
-    public int getMaxPlayers() {
-        return Math.max(getMinPlayers(), config.getInt("game.max-players", 16));
-    }
     
     /**
      * 获取游戏时长(秒)

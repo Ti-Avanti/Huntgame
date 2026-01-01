@@ -14,6 +14,11 @@ public enum GameState {
     WAITING("等待中", "Waiting"),
     
     /**
+     * 匹配中 - 等待更多玩家
+     */
+    MATCHING("匹配中", "Matching"),
+    
+    /**
      * 游戏开始倒计时
      */
     STARTING("开始倒计时", "Starting"),
@@ -69,7 +74,7 @@ public enum GameState {
      * 是否可以加入
      */
     public boolean isJoinable() {
-        return this == WAITING || this == STARTING;
+        return this == WAITING || this == MATCHING || this == STARTING;
     }
     
     /**
@@ -127,7 +132,9 @@ public enum GameState {
         // 定义合法的状态转换
         switch (this) {
             case WAITING:
-                return target == STARTING || target == RESTARTING;
+                return target == MATCHING || target == STARTING || target == RESTARTING;
+            case MATCHING:
+                return target == STARTING || target == PREPARING || target == WAITING || target == RESTARTING;
             case STARTING:
                 return target == PREPARING || target == WAITING || target == RESTARTING;
             case PREPARING:

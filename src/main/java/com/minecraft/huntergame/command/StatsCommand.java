@@ -5,9 +5,13 @@ import com.minecraft.huntergame.models.PlayerData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 统计命令
@@ -16,7 +20,7 @@ import java.util.List;
  * @author YourName
  * @version 1.0.0
  */
-public class StatsCommand implements CommandExecutor {
+public class StatsCommand implements CommandExecutor, TabCompleter {
     
     private final HunterGame plugin;
     
@@ -236,5 +240,32 @@ public class StatsCommand implements CommandExecutor {
                 rank++;
             }
         });
+    }
+    
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        
+        if (args.length == 1) {
+            // 第一个参数：子命令或玩家名
+            List<String> subCommands = Arrays.asList("wins", "kills", "escapes", "runner", "hunter", "dragon");
+            
+            String input = args[0].toLowerCase();
+            
+            // 添加子命令补全
+            for (String sub : subCommands) {
+                if (sub.startsWith(input)) {
+                    completions.add(sub);
+                }
+            }
+            
+            // 添加在线玩家名补全
+            completions.addAll(plugin.getServer().getOnlinePlayers().stream()
+                .map(Player::getName)
+                .filter(name -> name.toLowerCase().startsWith(input))
+                .collect(Collectors.toList()));
+        }
+        
+        return completions;
     }
 }

@@ -37,6 +37,18 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        
+        <!-- Multiverse Repository -->
+        <repository>
+            <id>onarandombox</id>
+            <url>https://repo.onarandombox.com/content/groups/public/</url>
+        </repository>
+        
+        <!-- Aliyun Maven Mirror -->
+        <repository>
+            <id>alimaven</id>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -94,6 +106,12 @@
             <artifactId>slf4j-simple</artifactId>
             <version>2.0.9</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.onarandombox.multiversecore</groupId>
+            <artifactId>Multiverse-Core</artifactId>
+            <version>4.3.1</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

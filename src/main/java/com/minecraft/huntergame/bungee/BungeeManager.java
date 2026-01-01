@@ -40,16 +40,27 @@ public class BungeeManager {
      */
     public void sendPlayerToServer(Player player, String server) {
         if (player == null || !player.isOnline()) {
+            plugin.getLogger().warning("无法传送玩家：玩家为null或不在线");
             return;
         }
         
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF("Connect");
-        out.writeUTF(server);
+        if (server == null || server.isEmpty()) {
+            plugin.getLogger().warning("无法传送玩家 " + player.getName() + "：服务器名称无效");
+            return;
+        }
         
-        player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
-        
-        plugin.getLogger().info("发送玩家 " + player.getName() + " 到服务器: " + server);
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF("Connect");
+            out.writeUTF(server);
+            
+            player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
+            
+            plugin.getLogger().info("发送玩家 " + player.getName() + " 到服务器: " + server);
+        } catch (Exception ex) {
+            plugin.getLogger().severe("传送玩家 " + player.getName() + " 到服务器 " + server + " 失败: " + ex.getMessage());
+            ex.printStackTrace();
+        }
     }
     
     /**

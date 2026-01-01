@@ -4,10 +4,17 @@ import com.minecraft.huntergame.HunterGame;
 import com.minecraft.huntergame.game.ManhuntGame;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 游戏设置命令
@@ -16,7 +23,7 @@ import org.bukkit.entity.Player;
  * @author YourName
  * @version 1.0.0
  */
-public class SetupCommand implements CommandExecutor {
+public class SetupCommand implements CommandExecutor, TabCompleter {
     
     private final HunterGame plugin;
     
@@ -47,6 +54,10 @@ public class SetupCommand implements CommandExecutor {
             
             case "world":
                 handleSetWorld(sender, args);
+                break;
+            
+            case "lobby":
+                handleSetLobby(sender, args);
                 break;
             
             case "info":
@@ -124,6 +135,25 @@ public class SetupCommand implements CommandExecutor {
     }
     
     /**
+     * 设置大厅位置
+     */
+    private void handleSetLobby(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "此命令只能由玩家执行！");
+            return;
+        }
+        
+        Player player = (Player) sender;
+        Location location = player.getLocation();
+        
+        // 保存大厅位置到配置
+        plugin.getManhuntConfig().setLobbyLocation(location);
+        
+        sender.sendMessage(ChatColor.GREEN + "已设置游戏大厅位置");
+        sender.sendMessage(ChatColor.GRAY + "位置: " + formatLocation(location));
+    }
+    
+    /**
      * 显示游戏信息
      */
     private void handleInfo(CommandSender sender, String[] args) {
@@ -168,6 +198,8 @@ public class SetupCommand implements CommandExecutor {
             ChatColor.GRAY + "- 设置出生点");
         sender.sendMessage(ChatColor.YELLOW + "/hgsetup world <游戏ID> <世界名> " + 
             ChatColor.GRAY + "- 设置游戏世界");
+        sender.sendMessage(ChatColor.YELLOW + "/hgsetup lobby " + 
+            ChatColor.GRAY + "- 设置游戏大厅");
         sender.sendMessage(ChatColor.YELLOW + "/hgsetup info <游戏ID> " + 
             ChatColor.GRAY + "- 查看游戏信息");
         sender.sendMessage(ChatColor.GOLD + "================================");
@@ -179,5 +211,42 @@ public class SetupCommand implements CommandExecutor {
     private String formatLocation(Location loc) {
         return String.format("%s (%.1f, %.1f, %.1f)", 
             loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ());
+    }
+    
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        
+        if (args.length == 1) {
+            // 第一个参数：子命令
+            List<String> subCommands = Arrays.asList("spawn", "world", "lobby", "info");
+            
+            String input = args[0].toLowerCase();
+            for (String sub : subCommands) {
+                if (sub.startsWith(input)) {
+                    completions.add(sub);
+                }
+            }
+        } else if (args.length == 2) {
+            // 第二个参数：游戏ID
+            String input = args[1].toLowerCase();
+            for (ManhuntGame game : plugin.getManhuntManager().getAllGames()) {
+                String gameId = game.getGameId();
+                if (gameId.toLowerCase().startsWith(input)) {
+                    completions.add(gameId);
+                }
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("world")) {
+            // world命令的第三个参数：世界名
+            String input = args[2].toLowerCase();
+            for (World world : plugin.getServer().getWorlds()) {
+                String worldName = world.getName();
+                if (worldName.toLowerCase().startsWith(input)) {
+                    completions.add(worldName);
+                }
+            }
+        }
+        
+        return completions;
     }
 }

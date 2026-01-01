@@ -6,6 +6,7 @@ import com.minecraft.huntergame.models.PlayerData;
 import com.minecraft.huntergame.util.TimeUtil;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -58,62 +59,153 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
     }
     
     @Override
-    public String onRequest(OfflinePlayer player, @NotNull String params) {
+    public String onRequest(OfflinePlayer offlinePlayer, @NotNull String params) {
         // 更新排行榜缓存
         updateLeaderboardCache();
         
+        // 检查玩家是否在线
+        if (offlinePlayer == null || !offlinePlayer.isOnline()) {
+            return null;
+        }
+        
+        Player player = offlinePlayer.getPlayer();
+        if (player == null) {
+            return null;
+        }
+        
         // 玩家统计变量
-        if (player != null && player.getPlayer() != null) {
-            PlayerData data = plugin.getStatsManager().getPlayerData(player.getPlayer());
-            
-            if (params.equals("games_played")) {
-                return data != null ? String.valueOf(data.getGamesPlayed()) : "0";
+        PlayerData data = plugin.getStatsManager().getPlayerData(player);
+        
+        if (params.equals("games_played")) {
+            return data != null ? String.valueOf(data.getGamesPlayed()) : "0";
+        }
+        
+        if (params.equals("games_won")) {
+            return data != null ? String.valueOf(data.getGamesWon()) : "0";
+        }
+        
+        if (params.equals("hunter_kills")) {
+            return data != null ? String.valueOf(data.getHunterKills()) : "0";
+        }
+        
+        if (params.equals("survivor_escapes")) {
+            return data != null ? String.valueOf(data.getSurvivorEscapes()) : "0";
+        }
+        
+        if (params.equals("survival_time")) {
+            if (data != null) {
+                return formatTime(data.getTotalSurvivalTime());
             }
-            
-            if (params.equals("games_won")) {
-                return data != null ? String.valueOf(data.getGamesWon()) : "0";
-            }
-            
-            if (params.equals("hunter_kills")) {
-                return data != null ? String.valueOf(data.getHunterKills()) : "0";
-            }
-            
-            if (params.equals("survivor_escapes")) {
-                return data != null ? String.valueOf(data.getSurvivorEscapes()) : "0";
-            }
-            
-            if (params.equals("survival_time")) {
-                if (data != null) {
-                    return formatTime(data.getTotalSurvivalTime());
+            return "0s";
+        }
+        
+        // 当前游戏状态变量
+        if (params.equals("current_role")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                com.minecraft.huntergame.game.PlayerRole role = game.getPlayerRole(player.getUniqueId());
+                if (role != null) {
+                    switch (role) {
+                        case RUNNER:
+                            return "逃亡者";
+                        case HUNTER:
+                            return "猎人";
+                        case SPECTATOR:
+                            return "观战者";
+                        default:
+                            return "未知";
+                    }
                 }
-                return "0s";
             }
-            
-            // 当前游戏状态变量 - Manhunt模式暂未实现
-            // TODO: 实现Manhunt游戏状态查询
-            if (params.equals("current_role")) {
-                return "暂不可用";
+            return "无";
+        }
+        
+        if (params.equals("current_role_color")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                com.minecraft.huntergame.game.PlayerRole role = game.getPlayerRole(player.getUniqueId());
+                if (role != null) {
+                    switch (role) {
+                        case RUNNER:
+                            return "&a";
+                        case HUNTER:
+                            return "&c";
+                        case SPECTATOR:
+                            return "&7";
+                        default:
+                            return "&f";
+                    }
+                }
             }
-            
-            if (params.equals("current_role_color")) {
-                return "&f";
+            return "&f";
+        }
+        
+        if (params.equals("current_game")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            return game != null ? game.getGameId() : "无";
+        }
+        
+        if (params.equals("game_state")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                switch (game.getState()) {
+                    case WAITING:
+                        return "等待中";
+                    case PREPARING:
+                        return "准备中";
+                    case PLAYING:
+                        return "进行中";
+                    case ENDING:
+                        return "结束中";
+                    default:
+                        return "未知";
+                }
             }
-            
-            if (params.equals("current_game")) {
-                return "无";
+            return "无";
+        }
+        
+        if (params.equals("game_players")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            return game != null ? String.valueOf(game.getPlayerCount()) : "0";
+        }
+        
+        if (params.equals("game_max_players")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                return String.valueOf(game.getMaxRunners() + game.getMaxHunters());
             }
-            
-            if (params.equals("game_state")) {
-                return "无";
+            return "0";
+        }
+        
+        if (params.equals("game_runners")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            return game != null ? String.valueOf(game.getRunners().size()) : "0";
+        }
+        
+        if (params.equals("game_hunters")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            return game != null ? String.valueOf(game.getHunters().size()) : "0";
+        }
+        
+        if (params.equals("game_alive_runners")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            return game != null ? String.valueOf(game.getAliveRunners().size()) : "0";
+        }
+        
+        if (params.equals("game_time")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null && game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
+                return formatTime((int) game.getElapsedTime());
             }
-            
-            if (params.equals("game_players")) {
-                return "0";
+            return "0s";
+        }
+        
+        if (params.equals("respawn_count")) {
+            com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                return String.valueOf(game.getRemainingRespawns(player.getUniqueId()));
             }
-            
-            if (params.equals("game_max_players")) {
-                return "0";
-            }
+            return "0";
         }
         
         // 角色颜色变量

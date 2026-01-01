@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
@@ -37,7 +38,7 @@ public class TrackerCompass {
     }
     
     /**
-     * 更新指南针指向
+     * 更新指南针指向（自动选择最近目标）
      */
     public void updateTarget(Player hunter) {
         // 查找最近的存活逃亡者
@@ -57,14 +58,82 @@ public class TrackerCompass {
             return;
         }
         
-        // 更新指南针指向
-        hunter.setCompassTarget(target.getLocation());
+        // 更新指南针指向（使用Lodestone机制）
+        updateCompassLodestone(hunter, target.getLocation());
         
         // 更新指南针显示信息
         updateCompassDisplay(hunter, target);
         
         // 更新时间
         lastUpdateTime = System.currentTimeMillis();
+    }
+    
+    /**
+     * 切换到下一个目标（手动切换）
+     */
+    public void switchToNextTarget(Player hunter) {
+        List<UUID> runners = game.getAliveRunners();
+        if (runners.isEmpty()) {
+            targetRunnerUUID = null;
+            updateCompassDisplay(hunter, null);
+            return;
+        }
+        
+        // 如果只有一个目标，不需要切换
+        if (runners.size() == 1) {
+            targetRunnerUUID = runners.get(0);
+            Player target = Bukkit.getPlayer(targetRunnerUUID);
+            if (target != null && target.isOnline()) {
+                updateCompassLodestone(hunter, target.getLocation());
+                updateCompassDisplay(hunter, target);
+            }
+            hunter.sendMessage(ChatColor.YELLOW + "只有一个逃亡者，无需切换");
+            return;
+        }
+        
+        // 找到当前目标在列表中的位置
+        int currentIndex = -1;
+        if (targetRunnerUUID != null) {
+            currentIndex = runners.indexOf(targetRunnerUUID);
+        }
+        
+        // 切换到下一个目标
+        int nextIndex = (currentIndex + 1) % runners.size();
+        targetRunnerUUID = runners.get(nextIndex);
+        
+        Player target = Bukkit.getPlayer(targetRunnerUUID);
+        if (target != null && target.isOnline()) {
+            updateCompassLodestone(hunter, target.getLocation());
+            updateCompassDisplay(hunter, target);
+            hunter.sendMessage(ChatColor.GREEN + "已切换追踪目标: " + target.getName());
+        }
+        
+        // 更新时间
+        lastUpdateTime = System.currentTimeMillis();
+    }
+    
+    /**
+     * 使用Lodestone机制更新指南针指向
+     */
+    private void updateCompassLodestone(Player hunter, Location targetLocation) {
+        ItemStack compass = findCompassInInventory(hunter);
+        if (compass == null || compass.getType() != Material.COMPASS) {
+            return;
+        }
+        
+        ItemMeta meta = compass.getItemMeta();
+        if (!(meta instanceof CompassMeta)) {
+            return;
+        }
+        
+        CompassMeta compassMeta = (CompassMeta) meta;
+        
+        // 设置Lodestone位置（即使没有实际的Lodestone方块）
+        compassMeta.setLodestone(targetLocation);
+        // 设置为追踪Lodestone
+        compassMeta.setLodestoneTracked(false); // false表示不需要实际的Lodestone方块
+        
+        compass.setItemMeta(compassMeta);
     }
     
     /**
@@ -77,29 +146,38 @@ public class TrackerCompass {
         }
         
         ItemMeta meta = compass.getItemMeta();
-        if (meta == null) {
+        if (!(meta instanceof CompassMeta)) {
             return;
         }
         
+        CompassMeta compassMeta = (CompassMeta) meta;
+        
         if (target == null) {
-            meta.setDisplayName(ChatColor.RED + "追踪指南针 - 无目标");
-            meta.setLore(Arrays.asList(
+            compassMeta.setDisplayName(ChatColor.RED + "追踪指南针 - 无目标");
+            compassMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "右键更新目标",
                 ChatColor.RED + "当前无存活逃亡者"
             ));
+            // 清除Lodestone追踪
+            compassMeta.setLodestone(null);
+            compassMeta.setLodestoneTracked(false);
         } else {
             String dimension = getDimensionName(target.getWorld());
             int distance = calculateDistance(hunter.getLocation(), target.getLocation());
             
-            meta.setDisplayName(ChatColor.GREEN + "追踪指南针 - " + target.getName());
-            meta.setLore(Arrays.asList(
+            String distanceStr = distance >= 0 ? distance + "方块" : "跨维度";
+            
+            compassMeta.setDisplayName(ChatColor.GREEN + "追踪指南针 - " + target.getName());
+            compassMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "右键更新目标",
+                ChatColor.GRAY + "潜行+右键切换目标",
                 ChatColor.YELLOW + "维度: " + dimension,
-                ChatColor.YELLOW + "距离: " + distance + "方块"
+                ChatColor.YELLOW + "距离: " + distanceStr,
+                ChatColor.GRAY + "自动追踪中..."
             ));
         }
         
-        compass.setItemMeta(meta);
+        compass.setItemMeta(compassMeta);
     }
     
     /**

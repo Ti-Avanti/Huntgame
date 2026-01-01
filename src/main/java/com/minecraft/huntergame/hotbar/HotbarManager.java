@@ -1,0 +1,268 @@
+package com.minecraft.huntergame.hotbar;
+
+import com.minecraft.huntergame.HunterGame;
+import com.minecraft.huntergame.game.ManhuntGame;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.Arrays;
+
+/**
+ * Hotbar快捷道具管理器
+ * 为玩家提供快捷操作道具
+ * 
+ * @author YourName
+ * @version 1.0.0
+ */
+public class HotbarManager {
+    
+    private final HunterGame plugin;
+    
+    // 道具槽位
+    private static final int SLOT_JOIN_GAME = 0;      // 加入游戏
+    private static final int SLOT_STATS = 1;          // 查看统计
+    private static final int SLOT_LEAVE_ROOM = 4;     // 离开房间
+    private static final int SLOT_SPECTATOR_MENU = 0; // 观战菜单
+    private static final int SLOT_LEAVE_SPECTATOR = 8; // 离开观战
+    
+    public HotbarManager(HunterGame plugin) {
+        this.plugin = plugin;
+        plugin.getLogger().info("Hotbar管理器已初始化");
+    }
+    
+    // ==================== 大厅状态道具 ====================
+    
+    /**
+     * 给予大厅道具
+     */
+    public void giveLobbyItems(Player player) {
+        player.getInventory().clear();
+        
+        // 加入游戏
+        ItemStack joinGame = createItem(
+            Material.COMPASS,
+            "§a§l加入游戏",
+            "§7点击打开游戏大厅",
+            "§7选择或创建游戏房间"
+        );
+        player.getInventory().setItem(SLOT_JOIN_GAME, joinGame);
+        
+        // 查看统计
+        ItemStack stats = createItem(
+            Material.BOOK,
+            "§e§l个人统计",
+            "§7点击查看你的游戏数据",
+            "§7包括胜率、击杀等信息"
+        );
+        player.getInventory().setItem(SLOT_STATS, stats);
+        
+        player.updateInventory();
+    }
+    
+    // ==================== 匹配状态道具 ====================
+    
+    /**
+     * 给予匹配道具
+     */
+    public void giveMatchingItems(Player player, ManhuntGame game) {
+        player.getInventory().clear();
+        
+        // 离开房间
+        ItemStack leaveRoom = createItem(
+            Material.RED_BED,
+            "§c§l离开房间",
+            "§7点击离开当前房间",
+            "§7返回游戏大厅"
+        );
+        player.getInventory().setItem(SLOT_LEAVE_ROOM, leaveRoom);
+        
+        player.updateInventory();
+    }
+    
+    // ==================== 观战状态道具 ====================
+    
+    /**
+     * 给予观战道具
+     */
+    public void giveSpectatorItems(Player player) {
+        player.getInventory().clear();
+        
+        // 观战菜单
+        ItemStack spectatorMenu = createItem(
+            Material.ENDER_EYE,
+            "§d§l观战菜单",
+            "§7点击选择观战目标",
+            "§7快速切换到其他玩家视角"
+        );
+        player.getInventory().setItem(SLOT_SPECTATOR_MENU, spectatorMenu);
+        
+        // 离开观战
+        ItemStack leaveSpectator = createItem(
+            Material.RED_BED,
+            "§c§l离开观战",
+            "§7点击退出观战模式",
+            "§7返回游戏大厅"
+        );
+        player.getInventory().setItem(SLOT_LEAVE_SPECTATOR, leaveSpectator);
+        
+        player.updateInventory();
+    }
+    
+    // ==================== 工具方法 ====================
+    
+    /**
+     * 创建道具
+     */
+    private ItemStack createItem(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        
+        if (meta != null) {
+            meta.setDisplayName(name);
+            if (lore.length > 0) {
+                meta.setLore(Arrays.asList(lore));
+            }
+            item.setItemMeta(meta);
+        }
+        
+        return item;
+    }
+    
+    /**
+     * 检查是否是快捷道具
+     */
+    public boolean isHotbarItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+        
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return false;
+        }
+        
+        String name = meta.getDisplayName();
+        return name.contains("加入游戏") || 
+               name.contains("个人统计") ||
+               name.contains("离开房间") ||
+               name.contains("观战菜单") ||
+               name.contains("离开观战");
+    }
+    
+    /**
+     * 处理快捷道具点击
+     */
+    public void handleHotbarClick(Player player, ItemStack item) {
+        if (!isHotbarItem(item)) {
+            return;
+        }
+        
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        
+        String name = meta.getDisplayName();
+        
+        if (name.contains("加入游戏")) {
+            // 直接加入或创建游戏进行匹配
+            handleJoinGame(player);
+        } else if (name.contains("个人统计")) {
+            // 执行统计命令
+            player.performCommand("manhunt stats");
+        } else if (name.contains("离开房间")) {
+            // 离开游戏
+            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                plugin.getManhuntManager().leaveGame(player);
+                player.sendMessage("§a你已离开游戏房间");
+                
+                // 给予大厅道具
+                giveLobbyItems(player);
+            }
+        } else if (name.contains("观战菜单")) {
+            // 打开观战菜单
+            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                // 只有在游戏进行中才能打开观战菜单
+                if (game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
+                    plugin.getGUIManager().openSpectatorMenu(player, game);
+                } else {
+                    player.sendMessage("§c游戏尚未开始，无法使用观战菜单！");
+                }
+            } else {
+                player.sendMessage("§c你不在游戏中！");
+            }
+        } else if (name.contains("离开观战")) {
+            // 离开观战
+            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+            if (game != null) {
+                plugin.getManhuntManager().leaveGame(player);
+                player.sendMessage("§a你已退出观战模式");
+                
+                // 给予大厅道具
+                giveLobbyItems(player);
+            }
+        }
+    }
+    
+    /**
+     * 清除玩家道具
+     */
+    public void clearItems(Player player) {
+        player.getInventory().clear();
+        player.updateInventory();
+    }
+    
+    /**
+     * 处理加入游戏
+     */
+    private void handleJoinGame(Player player) {
+        // 检查玩家是否已在游戏中
+        if (plugin.getManhuntManager().isInGame(player)) {
+            player.sendMessage("§c你已经在游戏中了！");
+            return;
+        }
+        
+        // 查找可加入的游戏
+        ManhuntGame availableGame = null;
+        
+        for (ManhuntGame game : plugin.getManhuntManager().getAllGames()) {
+            // 只加入等待或匹配状态的游戏
+            if (game.getState() == com.minecraft.huntergame.game.GameState.WAITING ||
+                game.getState() == com.minecraft.huntergame.game.GameState.MATCHING) {
+                
+                // 检查游戏是否未满
+                if (!game.isFull()) {
+                    availableGame = game;
+                    break;
+                }
+            }
+        }
+        
+        // 如果没有可用游戏，创建新游戏
+        if (availableGame == null) {
+            // 获取默认世界名称
+            String worldName = plugin.getManhuntConfig().getWorldName();
+            if (worldName == null || worldName.isEmpty()) {
+                worldName = "manhunt_world";
+            }
+            
+            // 创建新游戏
+            availableGame = plugin.getManhuntManager().createGame(worldName);
+            player.sendMessage("§a创建了新的游戏房间");
+        }
+        
+        // 加入游戏
+        boolean joined = plugin.getManhuntManager().joinGame(player, availableGame.getGameId());
+        
+        if (joined) {
+            player.sendMessage("§a成功加入游戏！");
+            player.sendMessage("§e等待其他玩家加入...");
+        } else {
+            player.sendMessage("§c加入游戏失败！");
+        }
+    }
+}

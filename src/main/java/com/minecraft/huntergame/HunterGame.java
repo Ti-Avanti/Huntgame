@@ -3,6 +3,10 @@ package com.minecraft.huntergame;
 import com.minecraft.huntergame.config.LanguageManager;
 import com.minecraft.huntergame.config.MainConfig;
 import com.minecraft.huntergame.config.ManhuntConfig;
+import com.minecraft.huntergame.config.ConfigManager;
+import com.minecraft.huntergame.config.ScoreboardConfig;
+import com.minecraft.huntergame.config.MessagesConfig;
+import com.minecraft.huntergame.config.RewardsConfig;
 import com.minecraft.huntergame.database.DatabaseManager;
 import com.minecraft.huntergame.database.PlayerRepository;
 import com.minecraft.huntergame.integration.IntegrationManager;
@@ -26,6 +30,7 @@ import com.minecraft.huntergame.listener.PlayerJoinLeaveListener;
 import com.minecraft.huntergame.listener.SpectatorListener;
 import com.minecraft.huntergame.listener.AntiCheatListener;
 import com.minecraft.huntergame.event.GameEventManager;
+import com.minecraft.huntergame.gui.GUIManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -43,8 +48,12 @@ public class HunterGame extends JavaPlugin {
     private ServerMode serverMode;
     
     // 配置管理器
+    private ConfigManager configManager;
     private MainConfig mainConfig;
     private ManhuntConfig manhuntConfig;
+    private ScoreboardConfig scoreboardConfig;
+    private MessagesConfig messagesConfig;
+    private RewardsConfig rewardsConfig;
     private LanguageManager languageManager;
     
     // 数据库管理器
@@ -76,6 +85,12 @@ public class HunterGame extends JavaPlugin {
     // 游戏事件管理器
     private GameEventManager gameEventManager;
     
+    // GUI管理器
+    private GUIManager guiManager;
+    
+    // Hotbar管理器
+    private com.minecraft.huntergame.hotbar.HotbarManager hotbarManager;
+    
     // Bungee组件
     private BungeeManager bungeeManager;
     private RedisManager redisManager;
@@ -84,6 +99,7 @@ public class HunterGame extends JavaPlugin {
     // 状态标志
     private boolean fullyLoaded = false;
     private boolean initSuccess = false;
+    private boolean debugMode = false;
     
     @Override
     public void onLoad() {
@@ -108,6 +124,13 @@ public class HunterGame extends JavaPlugin {
                 disablePlugin("配置初始化失败");
                 return;
             }
+            
+            // 读取debug模式配置
+            debugMode = getConfig().getBoolean("debug", false);
+            if (debugMode) {
+                getLogger().info("§e[DEBUG] Debug模式已启用");
+            }
+            
             getLogger().info("配置系统已初始化");
             
             // 3. 初始化数据库
@@ -165,11 +188,6 @@ public class HunterGame extends JavaPlugin {
         try {
             getLogger().info("猎人游戏插件正在关闭...");
             
-            // 保存所有玩家数据
-            if (statsManager != null) {
-                statsManager.saveAll();
-            }
-            
             // 关闭Manhunt管理器
             if (manhuntManager != null) {
                 manhuntManager.shutdown();
@@ -183,6 +201,11 @@ public class HunterGame extends JavaPlugin {
             // 关闭侧边栏管理器
             if (sidebarManager != null) {
                 sidebarManager.shutdown();
+            }
+            
+            // 保存所有玩家数据(同步保存,避免异步任务问题)
+            if (statsManager != null) {
+                statsManager.saveAllSync();
             }
             
             // 关闭数据库连接
@@ -213,15 +236,33 @@ public class HunterGame extends JavaPlugin {
      */
     private boolean detectServerMode() {
         try {
-            // 检查是否在Bungee网络中
-            if (getServer().spigot().getConfig().getBoolean("settings.bungeecord", false)) {
-                serverMode = ServerMode.BUNGEE;
-            } else {
+            // 先加载配置以读取mode设置
+            saveDefaultConfig();
+            reloadConfig();
+            
+            // 从config.yml读取模式配置
+            String modeStr = getConfig().getString("mode", "STANDALONE");
+            
+            try {
+                serverMode = ServerMode.valueOf(modeStr.toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                getLogger().warning("无效的服务器模式: " + modeStr + ", 使用默认值: STANDALONE");
                 serverMode = ServerMode.STANDALONE;
             }
+            
+            // 如果配置为BUNGEE模式，额外检查是否真的在Bungee网络中
+            if (serverMode == ServerMode.BUNGEE) {
+                boolean isBungeeCord = getServer().spigot().getConfig().getBoolean("settings.bungeecord", false);
+                if (!isBungeeCord) {
+                    getLogger().warning("配置为BUNGEE模式，但spigot.yml中未启用bungeecord！");
+                    getLogger().warning("请在spigot.yml中设置 settings.bungeecord: true");
+                }
+            }
+            
             return true;
         } catch (Exception ex) {
             getLogger().severe("检测服务器模式失败: " + ex.getMessage());
+            ex.printStackTrace();
             return false;
         }
     }
@@ -231,8 +272,9 @@ public class HunterGame extends JavaPlugin {
      */
     private boolean initConfig() {
         try {
-            // 保存默认配置
-            saveDefaultConfig();
+            // 初始化配置管理器
+            configManager = new ConfigManager(this);
+            configManager.loadAll();
             
             // 初始化主配置
             mainConfig = new MainConfig(this);
@@ -240,8 +282,20 @@ public class HunterGame extends JavaPlugin {
             // 初始化Manhunt配置
             manhuntConfig = new ManhuntConfig(this);
             
+            // 初始化计分板配置
+            scoreboardConfig = new ScoreboardConfig(this);
+            
+            // 初始化消息配置
+            messagesConfig = new MessagesConfig(this);
+            
+            // 初始化奖励配置
+            rewardsConfig = new RewardsConfig(this);
+            
             // 初始化语言管理器
             languageManager = new LanguageManager(this);
+            
+            // 所有配置类初始化完成后，进行配置验证
+            configManager.validateConfigs();
             
             return true;
         } catch (Exception ex) {
@@ -308,6 +362,12 @@ public class HunterGame extends JavaPlugin {
             gameEventManager = new GameEventManager(this);
             gameEventManager.startEventCheckTask();
             
+            // 初始化GUI管理器
+            guiManager = new GUIManager(this);
+            
+            // 初始化Hotbar管理器
+            hotbarManager = new com.minecraft.huntergame.hotbar.HotbarManager(this);
+            
             return true;
         } catch (Exception ex) {
             getLogger().severe("管理器初始化失败: " + ex.getMessage());
@@ -346,17 +406,24 @@ public class HunterGame extends JavaPlugin {
      */
     private void registerCommands() {
         // 主命令
-        getCommand("huntergame").setExecutor(new MainCommand(this));
+        MainCommand mainCommand = new MainCommand(this);
+        getCommand("huntergame").setExecutor(mainCommand);
+        getCommand("huntergame").setTabCompleter(mainCommand);
         
         // 统计命令
-        getCommand("hgstats").setExecutor(new StatsCommand(this));
+        StatsCommand statsCommand = new StatsCommand(this);
+        getCommand("hgstats").setExecutor(statsCommand);
+        getCommand("hgstats").setTabCompleter(statsCommand);
         
         // 队伍命令
-        getCommand("party").setExecutor(new PartyCommand(this));
+        PartyCommand partyCommand = new PartyCommand(this);
+        getCommand("party").setExecutor(partyCommand);
+        getCommand("party").setTabCompleter(partyCommand);
         
         // 管理员命令
-        getCommand("hgsetup").setExecutor(new com.minecraft.huntergame.command.SetupCommand(this));
-        getCommand("hgreload").setExecutor(new com.minecraft.huntergame.command.ReloadCommand(this));
+        com.minecraft.huntergame.command.SetupCommand setupCommand = new com.minecraft.huntergame.command.SetupCommand(this);
+        getCommand("hgsetup").setExecutor(setupCommand);
+        getCommand("hgsetup").setTabCompleter(setupCommand);
     }
     
     /**
@@ -380,6 +447,16 @@ public class HunterGame extends JavaPlugin {
         
         // 防作弊监听器
         getServer().getPluginManager().registerEvents(new AntiCheatListener(this), this);
+        
+        // GUI监听器
+        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.GUIListener(this), this);
+        
+        // Hotbar监听器
+        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.HotbarListener(this), this);
+        
+        // 传送门监听器（原生模式和Multiverse模式都需要）
+        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.PortalListener(this), this);
+        getLogger().info("传送门监听器已注册");
     }
     
     /**
@@ -417,8 +494,24 @@ public class HunterGame extends JavaPlugin {
         return mainConfig;
     }
     
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+    
     public ManhuntConfig getManhuntConfig() {
         return manhuntConfig;
+    }
+    
+    public ScoreboardConfig getScoreboardConfig() {
+        return scoreboardConfig;
+    }
+    
+    public MessagesConfig getMessagesConfig() {
+        return messagesConfig;
+    }
+    
+    public RewardsConfig getRewardsConfig() {
+        return rewardsConfig;
     }
     
     public LanguageManager getLanguageManager() {
@@ -469,6 +562,14 @@ public class HunterGame extends JavaPlugin {
         return gameEventManager;
     }
     
+    public GUIManager getGUIManager() {
+        return guiManager;
+    }
+    
+    public com.minecraft.huntergame.hotbar.HotbarManager getHotbarManager() {
+        return hotbarManager;
+    }
+    
     public BungeeManager getBungeeManager() {
         return bungeeManager;
     }
@@ -487,5 +588,18 @@ public class HunterGame extends JavaPlugin {
     
     public boolean isInitSuccess() {
         return initSuccess;
+    }
+    
+    public boolean isDebugMode() {
+        return debugMode;
+    }
+    
+    /**
+     * 输出debug日志
+     */
+    public void debug(String message) {
+        if (debugMode) {
+            getLogger().info("§e[DEBUG] " + message);
+        }
     }
 }

@@ -42,6 +42,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendHelp(sender);
                 return true;
                 
+            case "gui":
+            case "lobby":
+                return handleGUI(sender);
+                
             case "start":
                 return handleStart(sender, args);
                 
@@ -77,6 +81,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      */
     private void sendHelp(CommandSender sender) {
         sender.sendMessage("§6========== §e猎人游戏帮助 §6==========");
+        sender.sendMessage("§e/hg gui §7- 打开游戏大厅GUI");
         sender.sendMessage("§e/hg start [世界名] §7- 开始游戏");
         sender.sendMessage("§e/hg stop [游戏ID] §7- 停止游戏");
         sender.sendMessage("§e/hg join [游戏ID] §7- 加入游戏");
@@ -91,9 +96,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
     
     /**
-     * 处理开始游戏命令
+     * 处理GUI命令
      */
-    private boolean handleStart(CommandSender sender, String[] args) {
+    private boolean handleGUI(CommandSender sender) {
         if (!(sender instanceof Player)) {
             plugin.getLanguageManager().sendMessage(sender, "command.player-only");
             return true;
@@ -102,57 +107,108 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         Player player = (Player) sender;
         
         // 检查权限
-        if (!player.hasPermission("huntergame.admin.start")) {
+        if (!player.hasPermission("huntergame.gui")) {
             plugin.getLanguageManager().sendMessage(player, "command.no-permission");
             return true;
         }
         
+        // 根据服务器模式打开合适的GUI
+        plugin.getGUIManager().openGUI(player);
+        return true;
+    }
+    
+    /**
+     * 处理开始游戏命令
+     */
+    private boolean handleStart(CommandSender sender, String[] args) {
+        plugin.debug("handleStart called by " + sender.getName());
+        
+        if (!(sender instanceof Player)) {
+            plugin.getLanguageManager().sendMessage(sender, "command.player-only");
+            return true;
+        }
+        
+        Player player = (Player) sender;
+        plugin.debug("Player: " + player.getName());
+        
+        // 检查权限
+        if (!player.hasPermission("huntergame.admin.start")) {
+            plugin.debug("Player lacks permission: huntergame.admin.start");
+            plugin.getLanguageManager().sendMessage(player, "command.no-permission");
+            return true;
+        }
+        
+        plugin.debug("Permission check passed");
+        
         // 如果指定了游戏ID，则开始该游戏
         if (args.length > 1) {
             String gameId = args[1];
+            plugin.debug("Starting existing game: " + gameId);
+            
             com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getGame(gameId);
             
             if (game == null) {
+                plugin.debug("Game not found: " + gameId);
                 player.sendMessage("§c游戏不存在: " + gameId);
                 return true;
             }
             
+            plugin.debug("Game found, state: " + game.getState());
+            
             // 检查游戏状态
             if (game.getState() != com.minecraft.huntergame.game.GameState.WAITING) {
+                plugin.debug("Game already started, state: " + game.getState());
                 player.sendMessage("§c游戏已经开始了！");
                 return true;
             }
             
             // 检查人数
             int minPlayers = plugin.getManhuntConfig().getMinPlayers();
-            if (game.getPlayerCount() < minPlayers) {
+            int currentPlayers = game.getPlayerCount();
+            plugin.debug("Player count check: " + currentPlayers + "/" + minPlayers);
+            
+            if (currentPlayers < minPlayers) {
+                plugin.debug("Not enough players: " + currentPlayers + " < " + minPlayers);
                 player.sendMessage("§c人数不足！至少需要 " + minPlayers + " 名玩家");
+                player.sendMessage("§e当前玩家数: " + currentPlayers);
                 return true;
             }
             
             // 开始游戏
+            plugin.debug("Starting game: " + gameId);
             plugin.getManhuntManager().startGame(gameId);
+            player.sendMessage("§a游戏已开始！");
             return true;
         }
         
         // 如果没有指定游戏ID，则创建新游戏
+        plugin.debug("Creating new game");
+        
         // 检查玩家是否已在游戏中
         if (plugin.getManhuntManager().isInGame(player)) {
+            plugin.debug("Player already in game");
             player.sendMessage("§c你已经在游戏中了！");
             return true;
         }
         
         // 获取世界名称
         String worldName = player.getWorld().getName();
+        plugin.debug("World name: " + worldName);
         
         // 创建游戏
         com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().createGame(worldName);
+        plugin.debug("Game created: " + game.getGameId());
         
         // 设置出生点为玩家当前位置
         game.setSpawnLocation(player.getLocation());
+        plugin.debug("Spawn location set: " + player.getLocation());
         
         // 玩家加入游戏
-        if (!plugin.getManhuntManager().joinGame(player, game.getGameId())) {
+        boolean joined = plugin.getManhuntManager().joinGame(player, game.getGameId());
+        plugin.debug("Join game result: " + joined);
+        
+        if (!joined) {
+            plugin.debug("Failed to join game");
             player.sendMessage("§c加入游戏失败！");
             plugin.getManhuntManager().removeGame(game.getGameId());
             return true;
@@ -162,6 +218,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e其他玩家可以使用 §a/hg join " + game.getGameId() + " §e加入游戏");
         player.sendMessage("§e当所有玩家准备好后，使用 §a/hg start " + game.getGameId() + " §e开始游戏");
         
+        plugin.debug("Game creation completed successfully");
         return true;
     }
     
@@ -219,59 +276,106 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         
         Player player = (Player) sender;
         
-        // 检查权限
-        if (!player.hasPermission("huntergame.join")) {
-            plugin.getLanguageManager().sendMessage(player, "command.no-permission");
-            return true;
-        }
-        
         // 检查玩家是否已在游戏中
         if (plugin.getManhuntManager().isInGame(player)) {
             player.sendMessage("§c你已经在游戏中了！");
             return true;
         }
         
-        // 检查是否指定了游戏ID
+        // 单服务器模式：自动加入或创建游戏
+        if (plugin.getServerMode() == com.minecraft.huntergame.ServerMode.STANDALONE) {
+            return handleAutoJoin(player);
+        }
+        
+        // Bungee模式：需要指定游戏ID
         if (args.length < 2) {
             player.sendMessage("§c请指定游戏ID: /hg join <游戏ID>");
             return true;
         }
         
         String gameId = args[1];
-        
-        // 检查游戏是否存在
         com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().getGame(gameId);
+        
         if (game == null) {
             player.sendMessage("§c游戏不存在: " + gameId);
             return true;
         }
         
         // 检查游戏状态
-        if (game.getState() != com.minecraft.huntergame.game.GameState.WAITING) {
+        if (!game.getState().isJoinable()) {
             player.sendMessage("§c游戏已经开始，无法加入！");
             return true;
         }
         
-        // 检查人数限制
-        if (game.getPlayerCount() >= plugin.getManhuntConfig().getMaxPlayers()) {
-            player.sendMessage("§c游戏人数已满！");
+        // 加入游戏
+        boolean joined = plugin.getManhuntManager().joinGame(player, gameId);
+        
+        if (joined) {
+            player.sendMessage("§a成功加入游戏！");
+            player.sendMessage("§e当前玩家数: §a" + game.getPlayerCount() + "§7/§a" + (game.getMaxRunners() + game.getMaxHunters()));
+        } else {
+            player.sendMessage("§c加入游戏失败！游戏可能已满");
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 处理自动加入（单服务器模式）
+     */
+    private boolean handleAutoJoin(Player player) {
+        // 检查是否已有游戏
+        com.minecraft.huntergame.game.ManhuntGame existingGame = null;
+        
+        for (com.minecraft.huntergame.game.ManhuntGame game : plugin.getManhuntManager().getAllGames()) {
+            if (game.getState().isJoinable()) {
+                existingGame = game;
+                break;
+            }
+        }
+        
+        // 如果有可加入的游戏，直接加入
+        if (existingGame != null) {
+            boolean joined = plugin.getManhuntManager().joinGame(player, existingGame.getGameId());
+            
+            if (joined) {
+                player.sendMessage("§a成功加入游戏！");
+                player.sendMessage("§e当前玩家数: §a" + existingGame.getPlayerCount() + "§7/§a" + (existingGame.getMaxRunners() + existingGame.getMaxHunters()));
+                
+                // 如果达到最小人数，提示可以开始
+                if (existingGame.hasMinPlayers() && existingGame.getState() == com.minecraft.huntergame.game.GameState.WAITING) {
+                    player.sendMessage("§e已达到最小人数，等待更多玩家加入...");
+                }
+            } else {
+                player.sendMessage("§c加入游戏失败！游戏可能已满");
+            }
+            
             return true;
         }
         
-        // 加入游戏
-        if (plugin.getManhuntManager().joinGame(player, gameId)) {
-            player.sendMessage("§a成功加入游戏: " + gameId);
-            
-            // 广播加入消息
-            for (java.util.UUID uuid : game.getAllPlayers()) {
-                Player p = plugin.getServer().getPlayer(uuid);
-                if (p != null && !p.equals(player)) {
-                    p.sendMessage("§e玩家 " + player.getName() + " 加入了游戏 §7(" + 
-                        game.getPlayerCount() + "/" + plugin.getManhuntConfig().getMaxPlayers() + ")");
-                }
-            }
+        // 如果没有游戏，自动创建
+        String worldName = plugin.getManhuntConfig().getWorldName();
+        
+        // 加载或创建游戏世界
+        org.bukkit.World gameWorld = plugin.getWorldManager().loadOrCreateWorld(worldName);
+        if (gameWorld == null) {
+            player.sendMessage("§c无法创建游戏世界！");
+            return true;
+        }
+        
+        // 创建游戏
+        com.minecraft.huntergame.game.ManhuntGame game = plugin.getManhuntManager().createGame(worldName);
+        
+        // 玩家加入游戏
+        boolean joined = plugin.getManhuntManager().joinGame(player, game.getGameId());
+        
+        if (joined) {
+            player.sendMessage("§a成功创建并加入游戏！");
+            player.sendMessage("§e等待更多玩家加入...");
+            player.sendMessage("§7提示: 达到 §a" + plugin.getManhuntConfig().getMinPlayersToStart() + " §7人后将自动开始匹配");
         } else {
             player.sendMessage("§c加入游戏失败！");
+            plugin.getManhuntManager().removeGame(game.getGameId());
         }
         
         return true;
@@ -330,9 +434,131 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // TODO: 实现统计显示
-        sender.sendMessage("§e统计功能将在后续版本中实现");
+        // 如果没有参数，显示自己的统计
+        if (args.length == 1) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("§c控制台请指定玩家名称！");
+                sender.sendMessage("§e用法: /hg stats <玩家名>");
+                return true;
+            }
+            
+            Player player = (Player) sender;
+            showPlayerStats(player, player);
+            return true;
+        }
+        
+        // 显示指定玩家的统计
+        if (args.length == 2) {
+            String targetName = args[1];
+            Player target = plugin.getServer().getPlayer(targetName);
+            
+            if (target == null) {
+                // 玩家不在线，尝试从数据库加载
+                sender.sendMessage("§e正在查询玩家 §6" + targetName + " §e的统计数据...");
+                
+                // 异步查询数据库
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        // 通过名称查找UUID（这里简化处理，实际应该有名称->UUID的映射）
+                        com.minecraft.huntergame.models.PlayerData data = null;
+                        
+                        // 尝试从缓存中查找
+                        for (Player p : plugin.getServer().getOnlinePlayers()) {
+                            if (p.getName().equalsIgnoreCase(targetName)) {
+                                data = plugin.getStatsManager().getPlayerData(p.getUniqueId());
+                                break;
+                            }
+                        }
+                        
+                        if (data == null) {
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                sender.sendMessage("§c未找到玩家 " + targetName + " 的数据！");
+                            });
+                            return;
+                        }
+                        
+                        // 在主线程显示统计
+                        com.minecraft.huntergame.models.PlayerData finalData = data;
+                        plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            showPlayerStatsData(sender, finalData);
+                        });
+                    } catch (Exception ex) {
+                        plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            sender.sendMessage("§c查询统计数据时出错: " + ex.getMessage());
+                        });
+                    }
+                });
+                
+                return true;
+            }
+            
+            // 玩家在线，直接显示
+            showPlayerStats(sender, target);
+            return true;
+        }
+        
+        sender.sendMessage("§c用法: /hg stats [玩家名]");
         return true;
+    }
+    
+    /**
+     * 显示玩家统计（玩家在线）
+     */
+    private void showPlayerStats(CommandSender sender, Player target) {
+        com.minecraft.huntergame.models.PlayerData data = plugin.getStatsManager().getPlayerData(target.getUniqueId());
+        
+        if (data == null) {
+            sender.sendMessage("§c未找到玩家 " + target.getName() + " 的统计数据！");
+            return;
+        }
+        
+        showPlayerStatsData(sender, data);
+    }
+    
+    /**
+     * 显示玩家统计数据
+     */
+    private void showPlayerStatsData(CommandSender sender, com.minecraft.huntergame.models.PlayerData data) {
+        sender.sendMessage("§6========== §e玩家统计 §6==========");
+        sender.sendMessage("§e玩家: §a" + data.getName());
+        sender.sendMessage("");
+        sender.sendMessage("§6基础统计:");
+        sender.sendMessage("  §e游戏场次: §a" + data.getGamesPlayed());
+        sender.sendMessage("  §e胜利次数: §a" + data.getWins());
+        sender.sendMessage("  §e失败次数: §c" + data.getLosses());
+        
+        // 计算胜率
+        if (data.getGamesPlayed() > 0) {
+            double winRate = (double) data.getWins() / data.getGamesPlayed() * 100;
+            sender.sendMessage("  §e胜率: §a" + String.format("%.1f%%", winRate));
+        }
+        
+        sender.sendMessage("");
+        sender.sendMessage("§6猎人统计:");
+        sender.sendMessage("  §e击杀数: §a" + data.getHunterKills());
+        sender.sendMessage("  §e死亡数: §c" + data.getHunterDeaths());
+        sender.sendMessage("  §e胜利次数: §a" + data.getHunterWins());
+        
+        // 计算KD比
+        if (data.getHunterDeaths() > 0) {
+            double kd = (double) data.getHunterKills() / data.getHunterDeaths();
+            sender.sendMessage("  §eK/D比: §a" + String.format("%.2f", kd));
+        }
+        
+        sender.sendMessage("");
+        sender.sendMessage("§6逃亡者统计:");
+        sender.sendMessage("  §e逃脱次数: §a" + data.getSurvivorEscapes());
+        sender.sendMessage("  §e死亡数: §c" + data.getSurvivorDeaths());
+        sender.sendMessage("  §e胜利次数: §a" + data.getRunnerWins());
+        sender.sendMessage("  §e击败末影龙: §a" + data.getDragonKills() + " 次");
+        
+        // 计算平均生存时间
+        if (data.getGamesPlayed() > 0) {
+            int avgTime = data.getTotalSurvivalTime() / data.getGamesPlayed();
+            sender.sendMessage("  §e平均生存时间: §a" + com.minecraft.huntergame.util.TimeUtil.formatTimeChinese(avgTime));
+        }
+        
+        sender.sendMessage("§6================================");
     }
     
     /**
@@ -344,19 +570,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
+        sender.sendMessage("§e正在重载配置...");
+        
         try {
-            // 重载配置
-            plugin.reloadConfig();
+            // 1. 先重载ConfigManager中的所有配置文件
+            plugin.getConfigManager().reloadAll();
+            
+            // 2. 然后重载各个配置类（它们会从ConfigManager获取最新的配置）
             plugin.getMainConfig().reload();
             plugin.getManhuntConfig().reload();
+            plugin.getScoreboardConfig().reload();
+            plugin.getMessagesConfig().reload();
+            plugin.getRewardsConfig().reload();
             plugin.getLanguageManager().reload();
             
-            plugin.getLanguageManager().sendMessage(sender, "command.reload-success");
-            sender.sendMessage("§a配置已重载！");
+            sender.sendMessage("§a配置重载成功！");
+            plugin.getLogger().info(sender.getName() + " 重载了插件配置");
+            
         } catch (Exception ex) {
-            plugin.getLanguageManager().sendMessage(sender, "command.reload-failed");
-            sender.sendMessage("§c重载失败: " + ex.getMessage());
-            plugin.getLogger().severe("重载配置失败: " + ex.getMessage());
+            sender.sendMessage("§c配置重载失败: " + ex.getMessage());
+            plugin.getLogger().severe("配置重载失败: " + ex.getMessage());
             ex.printStackTrace();
         }
         
@@ -461,7 +694,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         
         if (args.length == 1) {
             // 第一个参数：子命令
-            List<String> subCommands = Arrays.asList("help", "start", "stop", "join", "leave", "stats", "list");
+            List<String> subCommands = Arrays.asList("help", "gui", "lobby", "start", "stop", "join", "leave", "stats", "list");
             
             if (sender.hasPermission("huntergame.admin")) {
                 subCommands = new ArrayList<>(subCommands);

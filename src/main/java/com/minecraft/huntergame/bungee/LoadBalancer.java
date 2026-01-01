@@ -39,13 +39,15 @@ public class LoadBalancer {
     public String selectBestServer(String serverGroup) {
         Set<String> serverKeys = redisManager.getOnlineServers();
         
-        if (serverKeys.isEmpty()) {
+        if (serverKeys == null || serverKeys.isEmpty()) {
             plugin.getLogger().warning("没有可用的游戏服务器");
             return null;
         }
         
         String bestServer = null;
         int minPlayers = Integer.MAX_VALUE;
+        long currentTime = System.currentTimeMillis();
+        final long SERVER_TIMEOUT = 60000; // 60秒超时
         
         for (String key : serverKeys) {
             // 从key中提取服务器名称
@@ -59,7 +61,7 @@ public class LoadBalancer {
             // 获取服务器信息
             Map<String, String> serverInfo = redisManager.getServerInfo(serverName);
             
-            if (serverInfo.isEmpty()) {
+            if (serverInfo == null || serverInfo.isEmpty()) {
                 continue;
             }
             
@@ -72,12 +74,13 @@ public class LoadBalancer {
             // 检查时间戳（过期的服务器不考虑）
             try {
                 long timestamp = Long.parseLong(serverInfo.get("timestamp"));
-                long currentTime = System.currentTimeMillis();
                 
-                if (currentTime - timestamp > 60000) { // 超过60秒认为离线
+                if (currentTime - timestamp > SERVER_TIMEOUT) {
+                    plugin.getLogger().warning("服务器 " + serverName + " 心跳超时，跳过");
                     continue;
                 }
-            } catch (Exception ex) {
+            } catch (NumberFormatException ex) {
+                plugin.getLogger().warning("服务器 " + serverName + " 时间戳格式错误");
                 continue;
             }
             
@@ -97,8 +100,8 @@ public class LoadBalancer {
                     bestServer = serverName;
                 }
                 
-            } catch (Exception ex) {
-                plugin.getLogger().warning("解析服务器信息失败: " + serverName);
+            } catch (NumberFormatException ex) {
+                plugin.getLogger().warning("解析服务器 " + serverName + " 玩家数量失败");
                 continue;
             }
         }

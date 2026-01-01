@@ -211,12 +211,61 @@ public class LanguageManager {
     }
     
     /**
-     * 获取玩家的语言（可以根据玩家的客户端语言）
+     * 获取玩家的语言（根据客户端语言自动检测）
      */
     public String getPlayerLanguage(Player player) {
-        // TODO: 可以根据玩家的客户端语言或玩家数据返回对应语言
-        // 目前返回默认语言
+        try {
+            // 获取玩家的客户端语言设置
+            String locale = player.getLocale();
+            
+            if (locale == null || locale.isEmpty()) {
+                return defaultLanguage;
+            }
+            
+            // 将Minecraft的locale格式转换为我们的语言代码
+            // Minecraft格式: zh_cn, en_us, ja_jp等
+            // 我们的格式: zh_CN, en_US等
+            String languageCode = convertLocaleToLanguageCode(locale);
+            
+            // 检查该语言是否可用
+            if (languages.containsKey(languageCode)) {
+                return languageCode;
+            }
+            
+            // 尝试只匹配语言部分（忽略地区）
+            // 例如: zh_CN 和 zh_TW 都匹配 zh
+            String languageOnly = languageCode.split("_")[0].toLowerCase();
+            for (String availableLang : languages.keySet()) {
+                if (availableLang.toLowerCase().startsWith(languageOnly)) {
+                    return availableLang;
+                }
+            }
+            
+        } catch (Exception ex) {
+            plugin.getLogger().warning("获取玩家语言失败: " + ex.getMessage());
+        }
+        
+        // 如果没有匹配的语言，返回默认语言
         return defaultLanguage;
+    }
+    
+    /**
+     * 将Minecraft的locale格式转换为语言代码
+     * 例如: zh_cn -> zh_CN, en_us -> en_US
+     */
+    private String convertLocaleToLanguageCode(String locale) {
+        if (locale == null || locale.isEmpty()) {
+            return defaultLanguage;
+        }
+        
+        // 分割语言和地区
+        String[] parts = locale.split("_");
+        if (parts.length != 2) {
+            return defaultLanguage;
+        }
+        
+        // 转换为标准格式: 语言小写_地区大写
+        return parts[0].toLowerCase() + "_" + parts[1].toUpperCase();
     }
     
     /**

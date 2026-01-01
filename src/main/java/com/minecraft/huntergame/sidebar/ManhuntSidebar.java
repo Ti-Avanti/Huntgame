@@ -3,119 +3,116 @@ package com.minecraft.huntergame.sidebar;
 import com.minecraft.huntergame.HunterGame;
 import com.minecraft.huntergame.game.ManhuntGame;
 import com.minecraft.huntergame.game.PlayerRole;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
-
-import java.util.UUID;
 
 /**
- * Manhunt侧边栏
- * 显示游戏信息
+ * Manhunt 游戏计分板
+ * <p>
+ * 显示游戏进行中的信息，包括：
+ * - 游戏状态
+ * - 玩家角色
+ * - 存活人数
+ * - 游戏时间
+ * </p>
  * 
  * @author YourName
  * @version 1.0.0
  */
-public class ManhuntSidebar {
+public class ManhuntSidebar extends BaseSidebar {
     
-    private final HunterGame plugin;
     private final ManhuntGame game;
-    private final Player player;
-    private Scoreboard scoreboard;
-    private Objective objective;
-    
-    public ManhuntSidebar(HunterGame plugin, ManhuntGame game, Player player) {
-        this.plugin = plugin;
-        this.game = game;
-        this.player = player;
-        
-        createScoreboard();
-    }
     
     /**
-     * 创建计分板
+     * 构造函数
+     * 
+     * @param plugin 插件实例
+     * @param game 游戏实例
+     * @param player 玩家
      */
-    private void createScoreboard() {
-        scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        objective = scoreboard.registerNewObjective("manhunt", "dummy", 
-            ChatColor.GOLD + "" + ChatColor.BOLD + "MANHUNT");
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+    public ManhuntSidebar(HunterGame plugin, ManhuntGame game, Player player) {
+        super(plugin, player);
+        this.game = game;
         
-        player.setScoreboard(scoreboard);
+        // 使用配置的标题
+        String title = plugin.getScoreboardConfig().getGameTitle();
+        createScoreboard("manhunt", title);
     }
     
     /**
      * 更新侧边栏
      */
+    @Override
     public void update() {
         // 清除旧分数
-        scoreboard.getEntries().forEach(scoreboard::resetScores);
+        clearLines();
         
         int line = 15;
+        int emptyLineCounter = 0; // 用于生成唯一的空行
         
         // 空行
-        setLine(line--, "");
+        setLine(line--, generateEmptyLine(emptyLineCounter++));
         
         // 游戏状态
-        String state = getStateDisplay();
-        setLine(line--, ChatColor.YELLOW + "状态: " + state);
-        
-        // 空行
-        setLine(line--, " ");
+        if (plugin.getScoreboardConfig().isShowState()) {
+            String state = getStateDisplay();
+            setLine(line--, ChatColor.YELLOW + "状态: " + state);
+            
+            // 空行
+            setLine(line--, generateEmptyLine(emptyLineCounter++));
+        }
         
         // 角色信息
-        PlayerRole role = game.getPlayerRole(player.getUniqueId());
-        if (role != null) {
-            String roleDisplay = getRoleDisplay(role);
-            setLine(line--, ChatColor.YELLOW + "角色: " + roleDisplay);
-            
-            // 如果是逃亡者，显示复活次数
-            if (role == PlayerRole.RUNNER) {
-                int respawns = game.getRemainingRespawns(player.getUniqueId());
-                setLine(line--, ChatColor.YELLOW + "复活: " + ChatColor.GREEN + respawns);
+        if (plugin.getScoreboardConfig().isShowRole()) {
+            PlayerRole role = game.getPlayerRole(player.getUniqueId());
+            if (role != null) {
+                String roleDisplay = getRoleDisplay(role);
+                setLine(line--, ChatColor.YELLOW + "角色: " + roleDisplay);
+                
+                // 如果是逃亡者，显示复活次数
+                if (role == PlayerRole.RUNNER && plugin.getScoreboardConfig().isShowRespawns()) {
+                    int respawns = game.getRemainingRespawns(player.getUniqueId());
+                    setLine(line--, ChatColor.YELLOW + "复活: " + ChatColor.GREEN + respawns);
+                }
+                
+                // 空行
+                setLine(line--, generateEmptyLine(emptyLineCounter++));
             }
         }
         
-        // 空行
-        setLine(line--, "  ");
-        
         // 存活人数
-        int aliveRunners = game.getAliveRunners().size();
-        int totalRunners = game.getRunners().size();
-        setLine(line--, ChatColor.YELLOW + "逃亡者: " + ChatColor.GREEN + aliveRunners + 
-            ChatColor.GRAY + "/" + totalRunners);
-        
-        int hunters = game.getHunters().size();
-        setLine(line--, ChatColor.YELLOW + "猎人: " + ChatColor.RED + hunters);
-        
-        // 空行
-        setLine(line--, "   ");
-        
-        // 游戏时间
-        if (game.isPreparing()) {
-            long remaining = (game.getPrepareEndTime() - System.currentTimeMillis()) / 1000;
-            setLine(line--, ChatColor.YELLOW + "准备: " + ChatColor.GREEN + remaining + "秒");
-        } else if (game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
-            long elapsed = game.getElapsedTime();
-            setLine(line--, ChatColor.YELLOW + "时间: " + ChatColor.AQUA + formatTime(elapsed));
+        if (plugin.getScoreboardConfig().isShowAliveCount()) {
+            int aliveRunners = game.getAliveRunners().size();
+            int totalRunners = game.getRunners().size();
+            setLine(line--, ChatColor.YELLOW + "逃亡者: " + ChatColor.GREEN + aliveRunners + 
+                ChatColor.GRAY + "/" + totalRunners);
+            
+            int hunters = game.getHunters().size();
+            setLine(line--, ChatColor.YELLOW + "猎人: " + ChatColor.RED + hunters);
+            
+            // 空行
+            setLine(line--, generateEmptyLine(emptyLineCounter++));
         }
         
-        // 空行
-        setLine(line--, "    ");
-    }
-    
-    /**
-     * 设置行内容
-     */
-    private void setLine(int line, String text) {
-        objective.getScore(text).setScore(line);
+        // 游戏时间
+        if (plugin.getScoreboardConfig().isShowTime()) {
+            if (game.isPreparing()) {
+                long remaining = (game.getPrepareEndTime() - System.currentTimeMillis()) / 1000;
+                setLine(line--, ChatColor.YELLOW + "准备: " + ChatColor.GREEN + remaining + "秒");
+            } else if (game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
+                long elapsed = game.getElapsedTime();
+                setLine(line--, ChatColor.YELLOW + "时间: " + ChatColor.AQUA + formatTime(elapsed));
+            }
+            
+            // 空行
+            setLine(line--, generateEmptyLine(emptyLineCounter++));
+        }
     }
     
     /**
      * 获取状态显示
+     * 
+     * @return 格式化的状态文本
      */
     private String getStateDisplay() {
         switch (game.getState()) {
@@ -134,6 +131,9 @@ public class ManhuntSidebar {
     
     /**
      * 获取角色显示
+     * 
+     * @param role 玩家角色
+     * @return 格式化的角色文本
      */
     private String getRoleDisplay(PlayerRole role) {
         switch (role) {
@@ -150,6 +150,9 @@ public class ManhuntSidebar {
     
     /**
      * 格式化时间
+     * 
+     * @param seconds 秒数
+     * @return 格式化的时间字符串（HH:MM:SS 或 MM:SS）
      */
     private String formatTime(long seconds) {
         long hours = seconds / 3600;
@@ -161,12 +164,5 @@ public class ManhuntSidebar {
         } else {
             return String.format("%d:%02d", minutes, secs);
         }
-    }
-    
-    /**
-     * 移除侧边栏
-     */
-    public void remove() {
-        player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
 }
