@@ -37,22 +37,10 @@ bungee:
   # 是否启用Bungee模式
   enabled: false
   
-  # 大厅服务器名称
-  lobby-server: "lobby"
-  
-  # 游戏结束后是否自动传送玩家回大厅
-  auto-send: true
-  
-  # 传送延迟(秒)
-  send-delay: 5
-  
-  # ========== Bungee 模式增强配置 ==========
-  
   # 主大厅服务器名称（玩家初始进入的服务器）
   main-lobby: "lobby"
   
-  # 子大厅服务器名称前缀（游戏服务器）
-  # 例如: game-1, game-2, game-3
+  # 子大厅服务器名称前缀（游戏服务器，例如: game-1, game-2）
   sub-lobby-prefix: "game-"
   
   # 当前服务器类型
@@ -60,9 +48,7 @@ bungee:
   # SUB_LOBBY - 子大厅服务器（允许创建游戏）
   server-type: MAIN_LOBBY
   
-  # 是否启用单场比赛模式
-  # true - 每个子服务器只能运行一个游戏实例
-  # false - 允许多个游戏实例
+  # 是否启用单场比赛模式（每个子服务器只能运行一个游戏实例）
   single-game-mode: true
   
   # 游戏结束后返回主大厅的延迟时间(秒)

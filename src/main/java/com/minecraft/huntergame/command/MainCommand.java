@@ -42,10 +42,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendHelp(sender);
                 return true;
                 
-            case "gui":
-            case "lobby":
-                return handleGUI(sender);
-                
             case "start":
                 return handleStart(sender, args);
                 
@@ -70,9 +66,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "spectate":
                 return handleSpectate(sender, args);
                 
-            case "redis":
-                return handleRedis(sender, args);
-                
             default:
                 plugin.getLanguageManager().sendMessage(sender, "command.unknown-subcommand");
                 return true;
@@ -84,7 +77,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      */
     private void sendHelp(CommandSender sender) {
         sender.sendMessage("§6========== §e猎人游戏帮助 §6==========");
-        sender.sendMessage("§e/hg gui §7- 打开游戏大厅GUI");
         sender.sendMessage("§e/hg start [世界名] §7- 开始游戏");
         sender.sendMessage("§e/hg stop [游戏ID] §7- 停止游戏");
         sender.sendMessage("§e/hg join [游戏ID] §7- 加入游戏");
@@ -96,28 +88,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (sender.hasPermission("huntergame.admin")) {
             sender.sendMessage("§c/hg reload §7- 重载配置 §c[管理员]");
         }
-    }
-    
-    /**
-     * 处理GUI命令
-     */
-    private boolean handleGUI(CommandSender sender) {
-        if (!(sender instanceof Player)) {
-            plugin.getLanguageManager().sendMessage(sender, "command.player-only");
-            return true;
-        }
-        
-        Player player = (Player) sender;
-        
-        // 检查权限
-        if (!player.hasPermission("huntergame.gui")) {
-            plugin.getLanguageManager().sendMessage(player, "command.no-permission");
-            return true;
-        }
-        
-        // 根据服务器模式打开合适的GUI
-        plugin.getGUIManager().openGUI(player);
-        return true;
     }
     
     /**
@@ -760,175 +730,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
     
-    /**
-     * 处理Redis测试命令
-     */
-    private boolean handleRedis(CommandSender sender, String[] args) {
-        // 检查权限
-        if (!sender.hasPermission("huntergame.admin.redis")) {
-            plugin.getLanguageManager().sendMessage(sender, "command.no-permission");
-            return true;
-        }
-        
-        // 检查是否是Bungee模式
-        if (plugin.getServerMode() != com.minecraft.huntergame.ServerMode.BUNGEE) {
-            sender.sendMessage("§c此命令仅在Bungee模式下可用！");
-            return true;
-        }
-        
-        // 检查Redis管理器
-        if (plugin.getRedisManager() == null) {
-            sender.sendMessage("§cRedis管理器未初始化！");
-            return true;
-        }
-        
-        // 子命令
-        if (args.length < 2) {
-            sender.sendMessage("§6========== §eRedis测试命令 §6==========");
-            sender.sendMessage("§e/hg redis status §7- 检查Redis连接状态");
-            sender.sendMessage("§e/hg redis servers §7- 查看所有在线服务器");
-            sender.sendMessage("§e/hg redis info <服务器名> §7- 查看服务器详细信息");
-            sender.sendMessage("§e/hg redis sync §7- 立即同步服务器状态");
-            return true;
-        }
-        
-        String subCmd = args[1].toLowerCase();
-        
-        switch (subCmd) {
-            case "status": {
-                sender.sendMessage("§6========== §eRedis状态 §6==========");
-                
-                boolean connected = plugin.getRedisManager().isConnected();
-                sender.sendMessage("§e连接状态: " + (connected ? "§a已连接" : "§c未连接"));
-                
-                if (connected) {
-                    sender.sendMessage("§e服务器名称: §a" + plugin.getRedisManager().getServerName());
-                    sender.sendMessage("§e服务器类型: §a" + plugin.getManhuntConfig().getServerType());
-                    
-                    // 获取在线服务器数量
-                    java.util.Set<String> servers = plugin.getRedisManager().getOnlineServers();
-                    sender.sendMessage("§e在线服务器数: §a" + servers.size());
-                }
-                
-                break;
-            }
-            
-            case "servers": {
-                sender.sendMessage("§6========== §e在线服务器列表 §6==========");
-                
-                if (!plugin.getRedisManager().isConnected()) {
-                    sender.sendMessage("§cRedis未连接！");
-                    return true;
-                }
-                
-                java.util.Set<String> serverKeys = plugin.getRedisManager().getOnlineServers();
-                
-                if (serverKeys.isEmpty()) {
-                    sender.sendMessage("§7没有在线的服务器");
-                } else {
-                    for (String key : serverKeys) {
-                        String serverName = key.replace("huntergame:servers:", "");
-                        java.util.Map<String, String> info = plugin.getRedisManager().getServerInfo(serverName);
-                        
-                        if (!info.isEmpty()) {
-                            String status = info.get("status");
-                            String players = info.get("players");
-                            String maxPlayers = info.get("maxPlayers");
-                            String type = info.get("type");
-                            
-                            sender.sendMessage("§e" + serverName + " §7- §a" + status + 
-                                " §7| §e" + players + "§7/§e" + maxPlayers + 
-                                " §7| §b" + type);
-                        }
-                    }
-                }
-                
-                sender.sendMessage("§7总计: §e" + serverKeys.size() + " §7个服务器");
-                break;
-            }
-            
-            case "info": {
-                if (args.length < 3) {
-                    sender.sendMessage("§c请指定服务器名称: /hg redis info <服务器名>");
-                    return true;
-                }
-                
-                String serverName = args[2];
-                
-                if (!plugin.getRedisManager().isConnected()) {
-                    sender.sendMessage("§cRedis未连接！");
-                    return true;
-                }
-                
-                java.util.Map<String, String> info = plugin.getRedisManager().getServerInfo(serverName);
-                
-                if (info.isEmpty()) {
-                    sender.sendMessage("§c未找到服务器: " + serverName);
-                    return true;
-                }
-                
-                sender.sendMessage("§6========== §e服务器信息 §6==========");
-                sender.sendMessage("§e服务器名称: §a" + info.get("name"));
-                sender.sendMessage("§e状态: §a" + info.get("status"));
-                sender.sendMessage("§e玩家数: §a" + info.get("players") + "§7/§a" + info.get("maxPlayers"));
-                sender.sendMessage("§e类型: §a" + info.get("type"));
-                
-                // 显示时间戳
-                try {
-                    long timestamp = Long.parseLong(info.get("timestamp"));
-                    long age = (System.currentTimeMillis() - timestamp) / 1000;
-                    sender.sendMessage("§e最后更新: §a" + age + " §7秒前");
-                } catch (Exception ex) {
-                    sender.sendMessage("§e最后更新: §c无效");
-                }
-                
-                break;
-            }
-            
-            case "sync": {
-                if (!plugin.getRedisManager().isConnected()) {
-                    sender.sendMessage("§cRedis未连接！");
-                    return true;
-                }
-                
-                sender.sendMessage("§e正在同步服务器状态...");
-                
-                int playerCount = plugin.getServer().getOnlinePlayers().size();
-                String status = plugin.getManhuntManager().determineServerStatus();
-                
-                plugin.getRedisManager().syncServerStatus(
-                    plugin.getRedisManager().getServerName(), 
-                    status, 
-                    playerCount
-                );
-                
-                sender.sendMessage("§a同步完成！");
-                sender.sendMessage("§e状态: §a" + status);
-                sender.sendMessage("§e玩家数: §a" + playerCount);
-                
-                break;
-            }
-            
-            default:
-                sender.sendMessage("§c未知的子命令！使用 /hg redis 查看帮助");
-                break;
-        }
-        
-        return true;
-    }
-    
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         
         if (args.length == 1) {
             // 第一个参数：子命令
-            List<String> subCommands = Arrays.asList("help", "gui", "lobby", "start", "stop", "join", "leave", "stats", "list", "spectate");
+            List<String> subCommands = Arrays.asList("help", "start", "stop", "join", "leave", "stats", "list", "spectate");
             
             if (sender.hasPermission("huntergame.admin")) {
                 subCommands = new ArrayList<>(subCommands);
                 subCommands.add("reload");
-                subCommands.add("redis");
             }
             
             String input = args[0].toLowerCase();
@@ -954,29 +767,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     String worldName = world.getName();
                     if (worldName.toLowerCase().startsWith(input)) {
                         completions.add(worldName);
-                    }
-                }
-            } else if (args[0].equalsIgnoreCase("redis")) {
-                // redis 命令的第二个参数：子命令
-                List<String> redisSubCommands = Arrays.asList("status", "servers", "info", "sync");
-                String input = args[1].toLowerCase();
-                for (String sub : redisSubCommands) {
-                    if (sub.startsWith(input)) {
-                        completions.add(sub);
-                    }
-                }
-            }
-        } else if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("redis") && args[1].equalsIgnoreCase("info")) {
-                // redis info 命令的第三个参数：服务器名称
-                if (plugin.getRedisManager() != null && plugin.getRedisManager().isConnected()) {
-                    String input = args[2].toLowerCase();
-                    java.util.Set<String> serverKeys = plugin.getRedisManager().getOnlineServers();
-                    for (String key : serverKeys) {
-                        String serverName = key.replace("huntergame:servers:", "");
-                        if (serverName.toLowerCase().startsWith(input)) {
-                            completions.add(serverName);
-                        }
                     }
                 }
             }

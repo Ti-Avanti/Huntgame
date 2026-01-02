@@ -121,12 +121,7 @@ anti-cheat:
   disable-gamemode: true
   # 禁用give命令
   disable-give: true
-  # 额外禁用的命令列表
-  disabled-commands:
-    - "tp"
-    - "teleport"
-    - "gamemode"
-    - "gm"
-    - "give"
+  # 额外禁用的命令列表（不要重复上面已启用的命令）
+  disabled-commands: []
 
 

@@ -31,7 +31,6 @@ import com.minecraft.huntergame.listener.PlayerJoinLeaveListener;
 import com.minecraft.huntergame.listener.SpectatorListener;
 import com.minecraft.huntergame.listener.AntiCheatListener;
 import com.minecraft.huntergame.event.GameEventManager;
-import com.minecraft.huntergame.gui.GUIManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
@@ -89,11 +88,11 @@ public class HunterGame extends JavaPlugin {
     // 游戏事件管理器
     private GameEventManager gameEventManager;
     
-    // GUI管理器
-    private GUIManager guiManager;
-    
     // Hotbar管理器
     private com.minecraft.huntergame.hotbar.HotbarManager hotbarManager;
+    
+    // 观战菜单监听器
+    private com.minecraft.huntergame.listener.SpectatorMenuListener spectatorMenuListener;
     
     // Bungee组件
     private BungeeManager bungeeManager;
@@ -373,9 +372,6 @@ public class HunterGame extends JavaPlugin {
             gameEventManager = new GameEventManager(this);
             gameEventManager.startEventCheckTask();
             
-            // 初始化GUI管理器
-            guiManager = new GUIManager(this);
-            
             // 初始化Hotbar管理器
             hotbarManager = new com.minecraft.huntergame.hotbar.HotbarManager(this);
             
@@ -552,8 +548,9 @@ public class HunterGame extends JavaPlugin {
         // 防作弊监听器
         getServer().getPluginManager().registerEvents(new AntiCheatListener(this), this);
         
-        // GUI监听器
-        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.GUIListener(this), this);
+        // 观战菜单监听器
+        spectatorMenuListener = new com.minecraft.huntergame.listener.SpectatorMenuListener(this);
+        getServer().getPluginManager().registerEvents(spectatorMenuListener, this);
         
         // Hotbar监听器
         getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.HotbarListener(this), this);
@@ -666,12 +663,12 @@ public class HunterGame extends JavaPlugin {
         return gameEventManager;
     }
     
-    public GUIManager getGUIManager() {
-        return guiManager;
-    }
-    
     public com.minecraft.huntergame.hotbar.HotbarManager getHotbarManager() {
         return hotbarManager;
+    }
+    
+    public com.minecraft.huntergame.listener.SpectatorMenuListener getSpectatorMenuListener() {
+        return spectatorMenuListener;
     }
     
     public BungeeManager getBungeeManager() {

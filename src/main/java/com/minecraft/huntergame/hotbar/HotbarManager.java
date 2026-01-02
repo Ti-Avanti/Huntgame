@@ -188,7 +188,10 @@ public class HotbarManager {
             if (game != null) {
                 // 只有在游戏进行中才能打开观战菜单
                 if (game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
-                    plugin.getGUIManager().openSpectatorMenu(player, game);
+                    com.minecraft.huntergame.gui.SpectatorMenuGUI menu = 
+                        new com.minecraft.huntergame.gui.SpectatorMenuGUI(plugin, player, game);
+                    plugin.getSpectatorMenuListener().registerMenu(player, menu);
+                    menu.open();
                 } else {
                     player.sendMessage("§c游戏尚未开始，无法使用观战菜单！");
                 }

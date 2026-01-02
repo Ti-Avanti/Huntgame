@@ -353,6 +353,21 @@ public class ManhuntManager {
         // 随机选择安全的出生点
         plugin.debug("Finding random safe spawn location...");
         World gameWorld = plugin.getServer().getWorld(game.getWorldName());
+        
+        // 如果世界不存在，尝试加载或创建世界
+        if (gameWorld == null) {
+            plugin.getLogger().warning("游戏世界未加载: " + game.getWorldName() + "，正在尝试加载...");
+            gameWorld = plugin.getWorldManager().loadOrCreateWorld(game.getWorldName());
+            
+            if (gameWorld == null) {
+                plugin.getLogger().severe("无法加载游戏世界: " + game.getWorldName());
+                plugin.getLogger().severe("游戏启动失败！");
+                return;
+            }
+            
+            plugin.getLogger().info("游戏世界加载成功: " + game.getWorldName());
+        }
+        
         if (gameWorld != null) {
             Location spawnLocation = com.minecraft.huntergame.util.LocationUtil.findRandomSafeSpawn(gameWorld, 50);
             game.setSpawnLocation(spawnLocation);

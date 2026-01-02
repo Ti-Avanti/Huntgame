@@ -14,8 +14,16 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Manhunt核心事件监听器
@@ -27,6 +35,9 @@ import org.bukkit.event.player.PlayerPortalEvent;
 public class ManhuntListener implements Listener {
     
     private final HunterGame plugin;
+    
+    // 跟踪等待复活的玩家 <玩家UUID, 死亡位置>
+    private final Map<UUID, Location> waitingRespawn = new HashMap<>();
     
     public ManhuntListener(HunterGame plugin) {
         this.plugin = plugin;
@@ -74,9 +85,14 @@ public class ManhuntListener implements Listener {
      * 处理逃亡者死亡
      */
     private void handleRunnerDeath(ManhuntGame game, Player player, PlayerDeathEvent event) {
-        // 取消死亡掉落（可选）
+        // 逃亡者死亡正常掉落物品
         event.setKeepInventory(false);
         event.setKeepLevel(false);
+        // 不清空掉落物，让物品正常掉落
+        // event.getDrops().clear();
+        
+        // 记录死亡位置
+        Location deathLocation = player.getLocation().clone();
         
         // 获取当前复活次数
         int remaining = game.getRemainingRespawns(player.getUniqueId());
@@ -91,29 +107,54 @@ public class ManhuntListener implements Listener {
             int respawnDelay = plugin.getManhuntConfig().getRespawnDelay();
             long delayTicks = respawnDelay * 20L;
             
+            plugin.debug("逃亡者 " + player.getName() + " 死亡，" + respawnDelay + "秒后复活");
+            
+            // 标记玩家正在等待复活
+            waitingRespawn.put(player.getUniqueId(), deathLocation);
+            
             // 广播消息
             broadcastToGame(game, ChatColor.YELLOW + "逃亡者 " + player.getName() + 
                 " 死亡！" + respawnDelay + "秒后复活，剩余复活次数: " + newRemaining);
             
             player.sendMessage(ChatColor.YELLOW + "你将在 " + respawnDelay + " 秒后复活");
+            player.sendMessage(ChatColor.GRAY + "请等待，不要点击重生按钮");
             
             // 延迟复活
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline() && player.isDead()) {
-                    // 直接复活玩家
-                    player.spigot().respawn();
+                if (player.isOnline()) {
+                    plugin.debug("开始复活玩家 " + player.getName());
                     
-                    // 传送到出生点
-                    if (game.getSpawnLocation() != null) {
-                        player.teleport(game.getSpawnLocation());
+                    // 移除等待标记
+                    waitingRespawn.remove(player.getUniqueId());
+                    
+                    // 如果玩家还在死亡状态，复活他
+                    if (player.isDead()) {
+                        player.spigot().respawn();
                     }
                     
-                    // 恢复状态
-                    player.setHealth(player.getMaxHealth());
-                    player.setFoodLevel(20);
-                    player.setFireTicks(0);
-                    
-                    player.sendMessage(ChatColor.GREEN + "你已复活！剩余复活次数: " + newRemaining);
+                    // 延迟一tick后传送和恢复状态，确保玩家已经重生
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                        if (player.isOnline()) {
+                            // 恢复游戏模式
+                            player.setGameMode(GameMode.SURVIVAL);
+                            
+                            // 传送到出生点
+                            if (game.getSpawnLocation() != null) {
+                                player.teleport(game.getSpawnLocation());
+                                plugin.debug("传送玩家到出生点: " + game.getSpawnLocation());
+                            }
+                            
+                            // 恢复状态
+                            player.setHealth(player.getMaxHealth());
+                            player.setFoodLevel(20);
+                            player.setSaturation(20.0f);
+                            player.setExhaustion(0.0f);
+                            player.setFireTicks(0);
+                            
+                            player.sendMessage(ChatColor.GREEN + "你已复活！剩余复活次数: " + newRemaining);
+                            plugin.debug("玩家 " + player.getName() + " 复活完成");
+                        }
+                    }, 1L);
                 }
             }, delayTicks);
             
@@ -151,38 +192,71 @@ public class ManhuntListener implements Listener {
      * 处理猎人死亡
      */
     private void handleHunterDeath(ManhuntGame game, Player player, PlayerDeathEvent event) {
-        // 取消死亡掉落（可选）
+        // 猎人死亡正常掉落物品
         event.setKeepInventory(false);
         event.setKeepLevel(false);
+        // 不清空掉落物，让物品正常掉落
+        // event.getDrops().clear();
+        
+        // 记录死亡位置
+        Location deathLocation = player.getLocation().clone();
         
         // 获取重生延迟配置（秒转tick）
         int respawnDelay = plugin.getManhuntConfig().getRespawnDelay();
         long delayTicks = respawnDelay * 20L;
+        
+        plugin.debug("猎人 " + player.getName() + " 死亡，" + respawnDelay + "秒后复活");
+        
+        // 标记玩家正在等待复活
+        waitingRespawn.put(player.getUniqueId(), deathLocation);
         
         // 猎人死亡后在出生点复活
         broadcastToGame(game, ChatColor.YELLOW + "猎人 " + player.getName() + 
             " 死亡，" + respawnDelay + "秒后复活");
         
         player.sendMessage(ChatColor.YELLOW + "你将在 " + respawnDelay + " 秒后复活");
+        player.sendMessage(ChatColor.GRAY + "请等待，不要点击重生按钮");
         
         // 延迟复活
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline() && player.isDead() && game.getSpawnLocation() != null) {
-                // 直接复活玩家
-                player.spigot().respawn();
+            if (player.isOnline()) {
+                plugin.debug("开始复活猎人 " + player.getName());
                 
-                // 传送到出生点
-                player.teleport(game.getSpawnLocation());
+                // 移除等待标记
+                waitingRespawn.remove(player.getUniqueId());
                 
-                // 恢复状态
-                player.setHealth(player.getMaxHealth());
-                player.setFoodLevel(20);
-                player.setFireTicks(0);
+                // 如果玩家还在死亡状态，复活他
+                if (player.isDead()) {
+                    player.spigot().respawn();
+                }
                 
-                player.sendMessage(ChatColor.GREEN + "你已在出生点复活");
-                
-                // 重新给予追踪指南针
-                plugin.getTrackerManager().giveTrackerCompass(player, game);
+                // 延迟一tick后传送和恢复状态，确保玩家已经完全重生
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        // 恢复游戏模式
+                        player.setGameMode(GameMode.SURVIVAL);
+                        
+                        // 传送到出生点
+                        if (game.getSpawnLocation() != null) {
+                            player.teleport(game.getSpawnLocation());
+                            plugin.debug("传送猎人到出生点: " + game.getSpawnLocation());
+                        }
+                        
+                        // 恢复状态
+                        player.setHealth(player.getMaxHealth());
+                        player.setFoodLevel(20);
+                        player.setSaturation(20.0f);
+                        player.setExhaustion(0.0f);
+                        player.setFireTicks(0);
+                        
+                        player.sendMessage(ChatColor.GREEN + "你已在出生点复活");
+                        
+                        // 重新给予追踪指南针
+                        plugin.getTrackerManager().giveTrackerCompass(player, game);
+                        
+                        plugin.debug("猎人 " + player.getName() + " 复活完成，已给予追踪指南针");
+                    }
+                }, 1L);
             }
         }, delayTicks);
     }
@@ -299,6 +373,41 @@ public class ManhuntListener implements Listener {
     }
     
     /**
+     * 监听玩家攻击事件（准备阶段禁止逃亡者攻击猎人）
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        // 检查是否是玩家攻击玩家
+        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)) {
+            return;
+        }
+        
+        Player attacker = (Player) event.getDamager();
+        Player victim = (Player) event.getEntity();
+        
+        // 检查攻击者是否在游戏中
+        ManhuntGame game = plugin.getManhuntManager().getPlayerGame(attacker);
+        if (game == null) {
+            return;
+        }
+        
+        // 检查是否在准备阶段
+        if (!game.isPreparing()) {
+            return;
+        }
+        
+        // 获取攻击者和受害者的角色
+        PlayerRole attackerRole = game.getPlayerRole(attacker.getUniqueId());
+        PlayerRole victimRole = game.getPlayerRole(victim.getUniqueId());
+        
+        // 如果攻击者是逃亡者，受害者是猎人，取消攻击
+        if (attackerRole == PlayerRole.RUNNER && victimRole == PlayerRole.HUNTER) {
+            event.setCancelled(true);
+            attacker.sendMessage(ChatColor.RED + "准备阶段，逃亡者无法攻击猎人！");
+        }
+    }
+    
+    /**
      * 监听玩家移动事件（准备阶段冻结猎人）
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -383,6 +492,56 @@ public class ManhuntListener implements Listener {
                 return "末地";
             default:
                 return "未知维度";
+        }
+    }
+    
+    /**
+     * 监听玩家重生事件
+     * 确保玩家在游戏世界重生，并处理延迟复活
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        
+        // 检查玩家是否在游戏中
+        ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+        if (game == null) {
+            return;
+        }
+        
+        // 检查游戏状态
+        if (game.getState() != GameState.PLAYING) {
+            return;
+        }
+        
+        // 获取玩家角色
+        PlayerRole role = game.getPlayerRole(player.getUniqueId());
+        
+        // 检查玩家是否在等待复活
+        if (waitingRespawn.containsKey(player.getUniqueId())) {
+            plugin.debug("玩家 " + player.getName() + " 提前点击了重生按钮，设置为旁观模式");
+            
+            // 获取死亡位置
+            Location deathLocation = waitingRespawn.get(player.getUniqueId());
+            
+            // 设置重生位置为死亡位置
+            event.setRespawnLocation(deathLocation);
+            
+            // 延迟1tick后设置为旁观模式（必须在重生后）
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && waitingRespawn.containsKey(player.getUniqueId())) {
+                    player.setGameMode(GameMode.SPECTATOR);
+                    player.sendMessage(ChatColor.YELLOW + "请等待复活时间结束...");
+                }
+            }, 1L);
+            
+            return;
+        }
+        
+        // 如果是逃亡者或猎人，设置重生位置为游戏出生点
+        if ((role == PlayerRole.RUNNER || role == PlayerRole.HUNTER) && game.getSpawnLocation() != null) {
+            event.setRespawnLocation(game.getSpawnLocation());
+            plugin.debug("设置玩家 " + player.getName() + " 的重生位置为游戏出生点");
         }
     }
     

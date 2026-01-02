@@ -6,7 +6,9 @@ import com.minecraft.huntergame.game.PlayerRole;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
@@ -20,27 +22,41 @@ import java.util.UUID;
  * @author YourName
  * @version 1.0.0
  */
-public class SpectatorMenuGUI extends BaseGUI {
+public class SpectatorMenuGUI {
     
+    private final HunterGame plugin;
+    private final Player player;
     private final ManhuntGame game;
+    private final Inventory inventory;
     
     public SpectatorMenuGUI(HunterGame plugin, Player player, ManhuntGame game) {
-        super(plugin, player);
+        this.plugin = plugin;
+        this.player = player;
         this.game = game;
+        this.inventory = Bukkit.createInventory(null, 54, "§8观战菜单");
     }
     
-    @Override
-    protected String getTitle() {
-        return "§8观战菜单";
+    /**
+     * 打开GUI
+     */
+    public void open() {
+        buildContent();
+        player.openInventory(inventory);
     }
     
-    @Override
-    protected int getSize() {
-        return 54;
+    /**
+     * 获取Inventory
+     */
+    public Inventory getInventory() {
+        return inventory;
     }
     
-    @Override
-    protected void buildContent() {
+    /**
+     * 构建GUI内容
+     */
+    private void buildContent() {
+        inventory.clear();
+        
         // 获取所有存活的玩家
         List<UUID> alivePlayers = new ArrayList<>();
         
@@ -62,7 +78,7 @@ public class SpectatorMenuGUI extends BaseGUI {
         
         // 如果没有可观战的玩家
         if (alivePlayers.isEmpty()) {
-            ItemStack noPlayers = GUIUtils.createItem(
+            ItemStack noPlayers = createItem(
                 Material.BARRIER,
                 "§c没有可观战的玩家",
                 "§7当前没有存活的玩家"
@@ -112,7 +128,7 @@ public class SpectatorMenuGUI extends BaseGUI {
         }
         
         // 返回按钮
-        ItemStack back = GUIUtils.createItem(
+        ItemStack back = createItem(
             Material.ARROW,
             "§c返回",
             "§7点击关闭菜单"
@@ -120,7 +136,9 @@ public class SpectatorMenuGUI extends BaseGUI {
         inventory.setItem(49, back);
     }
     
-    @Override
+    /**
+     * 处理点击事件
+     */
     public boolean handleClick(int slot, ItemStack clickedItem) {
         if (clickedItem == null || !clickedItem.hasItemMeta()) {
             return true;
@@ -151,5 +169,29 @@ public class SpectatorMenuGUI extends BaseGUI {
         }
         
         return true;
+    }
+    
+    /**
+     * 创建物品
+     */
+    private ItemStack createItem(Material material, String name, String... lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        
+        if (meta != null) {
+            meta.setDisplayName(name);
+            
+            if (lore != null && lore.length > 0) {
+                List<String> loreList = new ArrayList<>();
+                for (String line : lore) {
+                    loreList.add(line);
+                }
+                meta.setLore(loreList);
+            }
+            
+            item.setItemMeta(meta);
+        }
+        
+        return item;
     }
 }
