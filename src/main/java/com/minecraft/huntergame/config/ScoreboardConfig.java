@@ -42,10 +42,19 @@ public class ScoreboardConfig {
     // ==================== 通用配置 ====================
     
     /**
-     * 是否启用计分板
+     * 是否启用插件自带的计分板系统
+     * 当设置为 false 时，插件不会创建任何计分板
+     * 但仍然提供 PlaceholderAPI 变量供外部计分板使用
      */
     public boolean isEnabled() {
         return config.getBoolean("enabled", true);
+    }
+    
+    /**
+     * 是否启用计分板（别名方法，用于向后兼容）
+     */
+    public boolean isScoreboardEnabled() {
+        return isEnabled();
     }
     
     /**

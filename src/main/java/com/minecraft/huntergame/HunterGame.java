@@ -7,6 +7,7 @@ import com.minecraft.huntergame.config.ConfigManager;
 import com.minecraft.huntergame.config.ScoreboardConfig;
 import com.minecraft.huntergame.config.MessagesConfig;
 import com.minecraft.huntergame.config.RewardsConfig;
+import com.minecraft.huntergame.config.BungeeConfigValidator;
 import com.minecraft.huntergame.database.DatabaseManager;
 import com.minecraft.huntergame.database.PlayerRepository;
 import com.minecraft.huntergame.integration.IntegrationManager;
@@ -32,6 +33,9 @@ import com.minecraft.huntergame.listener.AntiCheatListener;
 import com.minecraft.huntergame.event.GameEventManager;
 import com.minecraft.huntergame.gui.GUIManager;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 猎人游戏主类 - Manhunt模式
@@ -149,6 +153,13 @@ public class HunterGame extends JavaPlugin {
             
             // 5. 初始化Bungee组件（如果是Bungee模式）
             if (serverMode == ServerMode.BUNGEE) {
+                // 验证 Bungee 配置
+                BungeeConfigValidator validator = new BungeeConfigValidator(this);
+                if (!validator.validate()) {
+                    disablePlugin("Bungee 配置验证失败");
+                    return;
+                }
+                
                 if (!initBungee()) {
                     disablePlugin("Bungee组件初始化失败");
                     return;
@@ -381,17 +392,40 @@ public class HunterGame extends JavaPlugin {
      */
     private boolean initBungee() {
         try {
+            // 获取服务器类型
+            com.minecraft.huntergame.config.ServerType serverType = manhuntConfig.getServerType();
+            debug("初始化 Bungee 组件，服务器类型: " + serverType);
+            
             // 初始化Bungee管理器
             bungeeManager = new BungeeManager(this);
+            debug("BungeeManager 已初始化");
             
             // 初始化Redis管理器
             redisManager = new RedisManager(this);
             if (!redisManager.connect()) {
                 getLogger().warning("Redis连接失败，Bungee功能可能受限");
+            } else {
+                debug("Redis 连接成功");
+                
+                // 只有子大厅服务器才注册到 Redis
+                if (serverType == com.minecraft.huntergame.config.ServerType.SUB_LOBBY) {
+                    redisManager.registerServer();
+                    debug("子大厅服务器已注册到 Redis: " + redisManager.getServerName());
+                } else {
+                    debug("主大厅服务器不注册到 Redis（仅查询子服务器）");
+                }
+                
+                // 启动定时同步任务
+                startRedisSync();
             }
             
             // 初始化负载均衡器
             loadBalancer = new LoadBalancer(this, redisManager);
+            debug("LoadBalancer 已初始化");
+            
+            // 设置负载均衡器到BungeeManager
+            bungeeManager.setLoadBalancer(loadBalancer);
+            debug("LoadBalancer 已设置到 BungeeManager");
             
             return true;
         } catch (Exception ex) {
@@ -399,6 +433,76 @@ public class HunterGame extends JavaPlugin {
             ex.printStackTrace();
             return false;
         }
+    }
+    
+    /**
+     * 启动Redis状态同步任务
+     */
+    private void startRedisSync() {
+        if (redisManager == null || !redisManager.isConnected()) {
+            debug("Redis 未连接，跳过同步任务启动");
+            return;
+        }
+        
+        // 获取服务器类型
+        com.minecraft.huntergame.config.ServerType serverType = manhuntConfig.getServerType();
+        
+        // 获取同步间隔（从配置读取，默认10秒）
+        int interval = mainConfig.getRedisUpdateInterval();
+        
+        // 启动定时同步任务
+        getServer().getScheduler().runTaskTimerAsynchronously(this, () -> {
+            try {
+                if (redisManager.isConnected()) {
+                    // 只有子大厅服务器才同步自己的状态
+                    if (serverType == com.minecraft.huntergame.config.ServerType.SUB_LOBBY) {
+                        // 同步服务器状态
+                        int playerCount = getServer().getOnlinePlayers().size();
+                        String status = determineServerStatus();
+                        
+                        redisManager.syncServerStatus(redisManager.getServerName(), status, playerCount);
+                        debug("同步服务器状态: " + status + ", 玩家数: " + playerCount);
+                        
+                        // 同步游戏状态
+                        if (manhuntManager != null) {
+                            for (com.minecraft.huntergame.game.ManhuntGame game : manhuntManager.getAllGames()) {
+                                redisManager.syncManhuntGameState(
+                                    game.getGameId(),
+                                    game.getState().name(),
+                                    game.getPlayerCount()
+                                );
+                            }
+                        }
+                    } else {
+                        // 主大厅服务器：定期检查可用的子服务器
+                        Set<String> servers = redisManager.getOnlineServers();
+                        debug("可用子服务器数量: " + servers.size());
+                        if (debugMode && !servers.isEmpty()) {
+                            for (String serverKey : servers) {
+                                String serverName = serverKey.replace("huntergame:servers:", "");
+                                Map<String, String> info = redisManager.getServerInfo(serverName);
+                                debug("  - " + serverName + ": " + info.get("status") + 
+                                      ", 玩家: " + info.get("players") + "/" + info.get("maxPlayers"));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                getLogger().warning("Redis状态同步失败: " + ex.getMessage());
+            }
+        }, 20L, interval * 20L); // 1秒后开始，每interval秒执行一次
+        
+        getLogger().info("Redis状态同步任务已启动 (间隔: " + interval + "秒, 服务器类型: " + serverType + ")");
+    }
+    
+    /**
+     * 确定服务器状态
+     */
+    private String determineServerStatus() {
+        if (manhuntManager == null) {
+            return "ONLINE";
+        }
+        return manhuntManager.determineServerStatus();
     }
     
     /**

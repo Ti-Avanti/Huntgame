@@ -87,11 +87,17 @@ public class ManhuntListener implements Listener {
             game.decreaseRespawns(player.getUniqueId());
             int newRemaining = game.getRemainingRespawns(player.getUniqueId());
             
+            // 获取重生延迟配置（秒转tick）
+            int respawnDelay = plugin.getManhuntConfig().getRespawnDelay();
+            long delayTicks = respawnDelay * 20L;
+            
             // 广播消息
             broadcastToGame(game, ChatColor.YELLOW + "逃亡者 " + player.getName() + 
-                " 死亡！剩余复活次数: " + newRemaining);
+                " 死亡！" + respawnDelay + "秒后复活，剩余复活次数: " + newRemaining);
             
-            // 立即复活（不显示重生界面）
+            player.sendMessage(ChatColor.YELLOW + "你将在 " + respawnDelay + " 秒后复活");
+            
+            // 延迟复活
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline() && player.isDead()) {
                     // 直接复活玩家
@@ -109,7 +115,7 @@ public class ManhuntListener implements Listener {
                     
                     player.sendMessage(ChatColor.GREEN + "你已复活！剩余复活次数: " + newRemaining);
                 }
-            }, 1L); // 立即执行（下一个tick）
+            }, delayTicks);
             
         } else {
             // 没有复活次数，淘汰
@@ -131,7 +137,12 @@ public class ManhuntListener implements Listener {
             
             // 检查游戏是否结束
             if (game.shouldEnd()) {
-                endGame(game, false); // 猎人获胜
+                // 延迟结束，让玩家看到消息
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    com.minecraft.huntergame.game.GameEndReason reason = 
+                        plugin.getManhuntManager().determineEndReason(game);
+                    plugin.getManhuntManager().endGame(game.getGameId(), reason);
+                }, 100L); // 5秒后结束
             }
         }
     }
@@ -144,10 +155,17 @@ public class ManhuntListener implements Listener {
         event.setKeepInventory(false);
         event.setKeepLevel(false);
         
-        // 猎人死亡后在出生点复活
-        broadcastToGame(game, ChatColor.YELLOW + "猎人 " + player.getName() + " 死亡");
+        // 获取重生延迟配置（秒转tick）
+        int respawnDelay = plugin.getManhuntConfig().getRespawnDelay();
+        long delayTicks = respawnDelay * 20L;
         
-        // 立即复活（不显示重生界面）
+        // 猎人死亡后在出生点复活
+        broadcastToGame(game, ChatColor.YELLOW + "猎人 " + player.getName() + 
+            " 死亡，" + respawnDelay + "秒后复活");
+        
+        player.sendMessage(ChatColor.YELLOW + "你将在 " + respawnDelay + " 秒后复活");
+        
+        // 延迟复活
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && player.isDead() && game.getSpawnLocation() != null) {
                 // 直接复活玩家
@@ -166,7 +184,7 @@ public class ManhuntListener implements Listener {
                 // 重新给予追踪指南针
                 plugin.getTrackerManager().giveTrackerCompass(player, game);
             }
-        }, 1L); // 立即执行（下一个tick）
+        }, delayTicks);
     }
     
     /**
@@ -213,8 +231,13 @@ public class ManhuntListener implements Listener {
         broadcastToGame(game, ChatColor.GREEN + "逃亡者获胜！");
         broadcastToGame(game, ChatColor.GOLD + "========================================");
         
-        // 结束游戏
-        endGame(game, true); // 逃亡者获胜
+        // 延迟结束游戏
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            plugin.getManhuntManager().endGame(
+                game.getGameId(), 
+                com.minecraft.huntergame.game.GameEndReason.RUNNERS_WIN_DRAGON
+            );
+        }, 100L); // 5秒后结束
     }
     
     /**
@@ -266,8 +289,13 @@ public class ManhuntListener implements Listener {
         broadcastToGame(game, ChatColor.GREEN + "逃亡者获胜！");
         broadcastToGame(game, ChatColor.GOLD + "========================================");
         
-        // 结束游戏
-        endGame(game, true); // 逃亡者获胜
+        // 延迟结束游戏
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            plugin.getManhuntManager().endGame(
+                game.getGameId(), 
+                com.minecraft.huntergame.game.GameEndReason.RUNNERS_WIN_DRAGON
+            );
+        }, 100L); // 5秒后结束
     }
     
     /**
@@ -368,15 +396,5 @@ public class ManhuntListener implements Listener {
                 player.sendMessage(message);
             }
         }
-    }
-    
-    /**
-     * 结束游戏
-     */
-    private void endGame(ManhuntGame game, boolean runnersWin) {
-        // 延迟结束，让玩家看到消息
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            plugin.getManhuntManager().endGame(game.getGameId());
-        }, 100L); // 5秒后结束
     }
 }

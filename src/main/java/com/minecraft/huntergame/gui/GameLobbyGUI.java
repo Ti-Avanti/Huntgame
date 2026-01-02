@@ -63,12 +63,25 @@ public class GameLobbyGUI extends BaseGUI {
         }
         
         // 创建房间按钮
-        ItemStack createButton = GUIUtils.createItem(
-            Material.EMERALD,
-            "§a§l创建房间",
-            "§7点击创建新的游戏房间"
-        );
-        setItem(49, createButton);
+        if (plugin.getServerMode() == com.minecraft.huntergame.ServerMode.STANDALONE ||
+            plugin.getManhuntConfig().getServerType() == com.minecraft.huntergame.config.ServerType.SUB_LOBBY) {
+            
+            ItemStack createButton = GUIUtils.createItem(
+                Material.EMERALD,
+                "§a§l创建房间",
+                "§7点击创建新的游戏房间"
+            );
+            setItem(49, createButton);
+        } else {
+            // 主大厅：显示传送并创建按钮
+            ItemStack createButton = GUIUtils.createItem(
+                Material.EMERALD,
+                "§a§l创建房间",
+                "§7点击传送到游戏服务器",
+                "§7并自动创建新房间"
+            );
+            setItem(49, createButton);
+        }
         
         // 刷新按钮
         ItemStack refreshButton = GUIUtils.createItem(
@@ -83,6 +96,33 @@ public class GameLobbyGUI extends BaseGUI {
     public boolean handleClick(int slot, ItemStack item) {
         // 创建房间按钮
         if (slot == 49) {
+            // Bungee 模式：主大厅传送玩家到子大厅并标记创建房间意图
+            if (plugin.getServerMode() == com.minecraft.huntergame.ServerMode.BUNGEE &&
+                plugin.getManhuntConfig().getServerType() == com.minecraft.huntergame.config.ServerType.MAIN_LOBBY) {
+                
+                // 在 Redis 中设置玩家的待处理动作
+                if (plugin.getRedisManager() != null && plugin.getRedisManager().isConnected()) {
+                    plugin.getRedisManager().setPlayerPendingAction(
+                        player.getUniqueId().toString(),
+                        "CREATE_ROOM",
+                        null
+                    );
+                }
+                
+                // 传送玩家到最佳子大厅服务器
+                boolean success = plugin.getBungeeManager().sendPlayerToBestServer(player);
+                
+                if (success) {
+                    player.sendMessage("§a正在传送到游戏服务器创建房间...");
+                    close();
+                } else {
+                    player.sendMessage("§c传送失败，请稍后重试");
+                }
+                
+                return true;
+            }
+            
+            // 单服务器模式或子大厅：直接打开创建房间界面
             plugin.getGUIManager().openCreateRoom(player);
             return true;
         }

@@ -323,35 +323,35 @@ public class MainConfig {
      * 获取数据库主机
      */
     public String getDatabaseHost() {
-        return config.getString("database.host", "localhost");
+        return config.getString("database.mysql.host", "localhost");
     }
     
     /**
      * 获取数据库端口
      */
     public int getDatabasePort() {
-        return config.getInt("database.port", 3306);
+        return config.getInt("database.mysql.port", 3306);
     }
     
     /**
      * 获取数据库名称
      */
     public String getDatabaseName() {
-        return config.getString("database.database", "huntergame");
+        return config.getString("database.mysql.database", "huntergame");
     }
     
     /**
      * 获取数据库用户名
      */
     public String getDatabaseUsername() {
-        return config.getString("database.username", "root");
+        return config.getString("database.mysql.username", "root");
     }
     
     /**
      * 获取数据库密码
      */
     public String getDatabasePassword() {
-        return config.getString("database.password", "");
+        return config.getString("database.mysql.password", "");
     }
     
     /**
@@ -497,6 +497,13 @@ public class MainConfig {
      */
     public String getRedisServerName() {
         return config.getString("redis.server-name", "game-1");
+    }
+    
+    /**
+     * 获取Redis状态更新间隔(秒)
+     */
+    public int getRedisUpdateInterval() {
+        return Math.max(5, config.getInt("redis.update-interval", 10));
     }
     
     /**

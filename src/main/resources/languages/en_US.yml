@@ -194,6 +194,9 @@ manhunt:
     prepare-end: "&a§lPreparation ended! Hunters are released!"
     playing: "&aGame officially started!"
     time-reminder: "&eTime remaining: &c{0}"
+    hunter-frozen: "&cFrozen time remaining"
+    hunter-released: "&a§lUnfrozen!"
+    hunter-released-subtitle: "&7Start hunting the runners"
     
   # Victory/Defeat
   victory:
@@ -206,12 +209,16 @@ manhunt:
   # Death/Respawn
   death:
     runner-died: "&cRunner &e{0} &cdied!"
+    runner-died-respawn: "&cRunner &e{0} &cdied! Respawning in &e{1}&cs, respawns left: &a{2}"
     runner-respawn: "&aRunner &e{0} &arespawned! Respawns left: &c{1}"
     runner-eliminated: "&cRunner &e{0} &chas been eliminated!"
     hunter-died: "&cHunter &e{0} &cdied!"
+    hunter-died-respawn: "&cHunter &e{0} &cdied, respawning in &e{1}&cs"
     hunter-respawn: "&aHunter &e{0} &arespawned at spawn!"
     no-respawns: "&cYou have no respawns left!"
     respawn-delay: "&eYou will respawn in &c{0} &eseconds..."
+    respawned: "&aYou respawned! Respawns left: &c{0}"
+    respawned-hunter: "&aYou respawned at spawn"
     
   # Tracker Compass
   tracker:

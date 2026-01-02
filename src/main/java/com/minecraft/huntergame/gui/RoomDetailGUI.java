@@ -93,6 +93,25 @@ public class RoomDetailGUI extends BaseGUI {
             player.sendMessage("§a已离开房间");
             plugin.getGUIManager().openGameLobby(player);
         } else if (!isInGame && game.getState().isJoinable() && !game.isFull()) {
+            // Bungee 模式：主大厅服务器传送玩家到子大厅
+            if (plugin.getServerMode() == com.minecraft.huntergame.ServerMode.BUNGEE &&
+                plugin.getManhuntConfig().getServerType() == com.minecraft.huntergame.config.ServerType.MAIN_LOBBY) {
+                
+                // 从游戏 ID 或 Redis 获取游戏所在的服务器名称
+                // 这里简化处理：传送到最佳服务器
+                boolean success = plugin.getBungeeManager().sendPlayerToBestServer(player);
+                
+                if (success) {
+                    player.sendMessage("§a正在传送到游戏服务器...");
+                    close();
+                } else {
+                    player.sendMessage("§c传送失败，请稍后重试");
+                }
+                
+                return true;
+            }
+            
+            // 单服务器模式或子大厅：直接加入游戏
             boolean joined = plugin.getManhuntManager().joinGame(player, game.getGameId());
             if (joined) {
                 player.sendMessage("§a成功加入房间！");

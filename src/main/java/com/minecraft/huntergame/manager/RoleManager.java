@@ -102,12 +102,19 @@ public class RoleManager {
             return 1;
         }
         
-        // 根据总人数和最大逃亡者数计算
-        // 逃亡者数量不超过总人数的1/3，且不超过maxRunners
-        int calculated = Math.min(totalPlayers / 3, maxRunners);
+        // 使用配置的比例计算逃亡者数量
+        double runnerRatio = plugin.getManhuntConfig().getRunnerRatio();
+        int calculated = (int) Math.ceil(totalPlayers * runnerRatio);
         
-        // 至少1个逃亡者
-        return Math.max(1, calculated);
+        // 限制在1到maxRunners之间
+        calculated = Math.max(1, Math.min(calculated, maxRunners));
+        
+        // 确保至少有1个猎人
+        if (calculated >= totalPlayers) {
+            calculated = totalPlayers - 1;
+        }
+        
+        return calculated;
     }
     
     /**

@@ -117,6 +117,15 @@ public class ManhuntConfig {
         return Math.max(1, config.getInt("players.max-hunters", 5));
     }
     
+    /**
+     * 获取逃亡者比例(0.0-1.0)
+     */
+    public double getRunnerRatio() {
+        double ratio = config.getDouble("players.runner-ratio", 0.4);
+        // 限制在0.1-0.9之间
+        return Math.max(0.1, Math.min(0.9, ratio));
+    }
+    
     // ==================== 游戏配置 ====================
     
     /**
@@ -487,5 +496,55 @@ public class ManhuntConfig {
      */
     public java.util.List<String> getDisabledCommands() {
         return config.getStringList("anti-cheat.disabled-commands");
+    }
+    
+    // ==================== Bungee 模式增强配置 ====================
+    
+    /**
+     * 获取主大厅服务器名称
+     */
+    public String getMainLobby() {
+        return plugin.getConfig().getString("bungee.main-lobby", "lobby");
+    }
+    
+    /**
+     * 获取子大厅服务器名称前缀
+     */
+    public String getSubLobbyPrefix() {
+        String prefix = plugin.getConfig().getString("bungee.sub-lobby-prefix", "game-");
+        plugin.debug("从配置读取 sub-lobby-prefix: " + prefix);
+        return prefix;
+    }
+    
+    /**
+     * 获取当前服务器类型
+     */
+    public ServerType getServerType() {
+        String typeStr = plugin.getConfig().getString("bungee.server-type", "SUB_LOBBY");
+        plugin.debug("从配置读取 server-type: " + typeStr);
+        
+        try {
+            ServerType type = ServerType.valueOf(typeStr.toUpperCase());
+            plugin.debug("解析后的 ServerType: " + type);
+            return type;
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("无效的服务器类型: " + typeStr + "，使用默认值: SUB_LOBBY");
+            plugin.getLogger().warning("有效值: MAIN_LOBBY, SUB_LOBBY");
+            return ServerType.SUB_LOBBY;
+        }
+    }
+    
+    /**
+     * 是否启用单场比赛模式
+     */
+    public boolean isSingleGameMode() {
+        return plugin.getConfig().getBoolean("bungee.single-game-mode", true);
+    }
+    
+    /**
+     * 获取游戏结束后返回主大厅的延迟时间(秒)
+     */
+    public int getReturnDelay() {
+        return Math.max(0, plugin.getConfig().getInt("bungee.return-delay", 5));
     }
 }

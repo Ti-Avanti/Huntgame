@@ -12,6 +12,9 @@ players:
   max-runners: 3
   # 最大猎人数(1-5)
   max-hunters: 5
+  # 逃亡者比例(0.0-1.0)，例如0.4表示40%的玩家是逃亡者
+  # 实际逃亡者数量 = min(总人数 * runner-ratio, max-runners)
+  runner-ratio: 0.4
 
 # 匹配配置
 matching:
@@ -125,3 +128,5 @@ anti-cheat:
     - "gamemode"
     - "gm"
     - "give"
+
+

@@ -1,13 +1,17 @@
 package com.minecraft.huntergame.listener;
 
 import com.minecraft.huntergame.HunterGame;
+import com.minecraft.huntergame.game.GameState;
+import com.minecraft.huntergame.game.ManhuntGame;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -61,6 +65,91 @@ public class HotbarListener implements Listener {
                 event.setCancelled(true);
                 player.sendMessage("§c你不能丢弃快捷道具！");
             }
+        }
+    }
+    
+    /**
+     * 防止玩家在等待/匹配状态下移动hotbar物品
+     * 完全锁定物品栏，防止任何物品移动
+     */
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        
+        Player player = (Player) event.getWhoClicked();
+        ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+        
+        // 如果玩家不在游戏中（主大厅），也锁定物品栏
+        if (game == null) {
+            event.setCancelled(true);
+            if (event.getCurrentItem() != null || event.getCursor() != null) {
+                player.sendMessage("§c大厅中无法移动物品！");
+            }
+            return;
+        }
+        
+        GameState state = game.getState();
+        
+        // 只在等待和匹配状态下锁定物品栏
+        if (state == GameState.WAITING || state == GameState.MATCHING) {
+            // 完全取消所有物品栏操作
+            event.setCancelled(true);
+            
+            // 只在玩家点击物品时提示（避免刷屏）
+            if (event.getCurrentItem() != null || event.getCursor() != null) {
+                player.sendMessage("§c匹配期间无法移动物品！");
+            }
+        }
+    }
+    
+    /**
+     * 防止玩家在等待/匹配状态下切换副手物品
+     */
+    @EventHandler
+    public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+        
+        // 如果玩家不在游戏中（主大厅），也锁定
+        if (game == null) {
+            event.setCancelled(true);
+            return;
+        }
+        
+        GameState state = game.getState();
+        
+        // 只在等待和匹配状态下锁定
+        if (state == GameState.WAITING || state == GameState.MATCHING) {
+            event.setCancelled(true);
+        }
+    }
+    
+    /**
+     * 防止玩家在等待/匹配状态下丢弃物品
+     */
+    @EventHandler
+    public void onPlayerDropItemInGame(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
+        
+        // 如果玩家不在游戏中（主大厅），也禁止丢弃
+        if (game == null) {
+            ItemStack item = event.getItemDrop().getItemStack();
+            if (plugin.getHotbarManager().isHotbarItem(item)) {
+                event.setCancelled(true);
+                player.sendMessage("§c你不能丢弃快捷道具！");
+            }
+            return;
+        }
+        
+        GameState state = game.getState();
+        
+        // 在等待和匹配状态下，禁止丢弃任何物品
+        if (state == GameState.WAITING || state == GameState.MATCHING) {
+            event.setCancelled(true);
+            player.sendMessage("§c匹配期间无法丢弃物品！");
         }
     }
 }

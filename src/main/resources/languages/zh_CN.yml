@@ -209,6 +209,9 @@ manhunt:
     prepare-end: "&a§l准备时间结束！猎人已解除冻结！"
     playing: "&a游戏正式开始！"
     time-reminder: "&e游戏剩余时间: &c{0}"
+    hunter-frozen: "&c定身时间剩余"
+    hunter-released: "&a§l解除冻结！"
+    hunter-released-subtitle: "&7开始追捕逃亡者"
     
   # 胜利/失败
   victory:
@@ -221,12 +224,16 @@ manhunt:
   # 死亡/复活
   death:
     runner-died: "&c逃亡者 &e{0} &c死亡了！"
+    runner-died-respawn: "&c逃亡者 &e{0} &c死亡！&e{1}&c秒后复活，剩余复活次数: &a{2}"
     runner-respawn: "&a逃亡者 &e{0} &a复活了！剩余复活次数: &c{1}"
     runner-eliminated: "&c逃亡者 &e{0} &c已被淘汰！"
     hunter-died: "&c猎人 &e{0} &c死亡了！"
+    hunter-died-respawn: "&c猎人 &e{0} &c死亡，&e{1}&c秒后复活"
     hunter-respawn: "&a猎人 &e{0} &a在出生点复活了！"
     no-respawns: "&c你没有复活次数了！"
     respawn-delay: "&e你将在 &c{0} &e秒后复活..."
+    respawned: "&a你已复活！剩余复活次数: &c{0}"
+    respawned-hunter: "&a你已在出生点复活"
     
   # 追踪指南针
   tracker:

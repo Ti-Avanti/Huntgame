@@ -355,6 +355,12 @@ public class ManhuntGame {
             return true;
         }
         
+        // 检查所有猎人是否离开（新增）
+        if (getAliveHunters().isEmpty()) {
+            plugin.getLogger().info("游戏 " + gameId + " 所有猎人已离开，游戏结束");
+            return true;
+        }
+        
         // 检查末影龙是否被击败
         if (dragonDefeated) {
             return true;
@@ -377,6 +383,19 @@ public class ManhuntGame {
     public List<UUID> getAliveRunners() {
         List<UUID> alive = new ArrayList<>();
         for (UUID uuid : runners) {
+            if (!spectators.contains(uuid)) {
+                alive.add(uuid);
+            }
+        }
+        return alive;
+    }
+    
+    /**
+     * 获取存活的猎人（新增）
+     */
+    public List<UUID> getAliveHunters() {
+        List<UUID> alive = new ArrayList<>();
+        for (UUID uuid : hunters) {
             if (!spectators.contains(uuid)) {
                 alive.add(uuid);
             }
@@ -552,6 +571,32 @@ public class ManhuntGame {
     
     public long getMatchingEndTime() {
         return matchingEndTime;
+    }
+    
+    /**
+     * 获取匹配剩余时间(秒)
+     */
+    public int getMatchingTimeRemaining() {
+        if (state != GameState.WAITING || matchingStartTime == 0) {
+            return 0;
+        }
+        
+        long now = System.currentTimeMillis();
+        long remaining = (matchingEndTime - now) / 1000;
+        return Math.max(0, (int) remaining);
+    }
+    
+    /**
+     * 获取准备剩余时间(秒)
+     */
+    public int getPrepareTimeRemaining() {
+        if (state != GameState.PREPARING || prepareEndTime == 0) {
+            return 0;
+        }
+        
+        long now = System.currentTimeMillis();
+        long remaining = (prepareEndTime - now) / 1000;
+        return Math.max(0, (int) remaining);
     }
     
     /**

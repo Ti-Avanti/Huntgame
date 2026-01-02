@@ -2,8 +2,9 @@
 #     计分板配置
 # ========================================
 
-# 是否启用计分板
-enabled: true
+# 是否启用插件自带的计分板系统
+# 设置为 false 可以使用自定义计分板（通过 PlaceholderAPI 变量）
+enabled: false
 
 # 更新间隔(tick, 20tick=1秒)
 update-interval: 20
@@ -136,3 +137,159 @@ roles:
 #   {status} - 状态文本
 #   {countdown} - 倒计时
 #   {server} - 服务器名称
+
+
+# ========================================
+#     自定义计分板配置示例
+# ========================================
+# 当 enabled: false 时，你可以使用第三方计分板插件（如 FeatherBoard、AnimatedScoreboard）
+# 配合 PlaceholderAPI 变量来显示游戏信息
+
+# ========================================
+#     可用的 PlaceholderAPI 变量
+# ========================================
+# 基础信息:
+#   %huntergame_player_name% - 玩家名称
+#   %huntergame_player_uuid% - 玩家UUID
+#   %huntergame_server_mode% - 服务器模式(LOBBY/GAME)
+#
+# 游戏状态:
+#   %huntergame_game_state% - 游戏状态(WAITING/MATCHING/PREPARING/PLAYING/ENDING)
+#   %huntergame_game_state_color% - 游戏状态颜色代码
+#   %huntergame_in_game% - 是否在游戏中(true/false)
+#
+# 角色信息:
+#   %huntergame_player_role% - 玩家角色(RUNNER/HUNTER/SPECTATOR)
+#   %huntergame_player_role_color% - 角色颜色代码
+#   %huntergame_is_runner% - 是否为逃亡者(true/false)
+#   %huntergame_is_hunter% - 是否为猎人(true/false)
+#   %huntergame_is_spectator% - 是否为观战者(true/false)
+#
+# 游戏数据:
+#   %huntergame_game_time% - 游戏时间(格式化)
+#   %huntergame_game_time_seconds% - 游戏时间(秒)
+#   %huntergame_remaining_time% - 剩余时间(格式化)
+#   %huntergame_remaining_time_seconds% - 剩余时间(秒)
+#
+# 玩家统计:
+#   %huntergame_respawns% - 剩余复活次数
+#   %huntergame_max_respawns% - 最大复活次数
+#   %huntergame_alive_runners% - 存活逃亡者数
+#   %huntergame_total_runners% - 总逃亡者数
+#   %huntergame_alive_hunters% - 存活猎人数
+#   %huntergame_total_hunters% - 总猎人数
+#   %huntergame_player_count% - 当前玩家数
+#   %huntergame_max_players% - 最大玩家数
+#
+# 房间信息:
+#   %huntergame_room_id% - 房间ID
+#   %huntergame_room_name% - 房间名称
+#   %huntergame_room_mode% - 游戏模式
+#   %huntergame_countdown% - 倒计时(秒)
+#
+# 个人数据:
+#   %huntergame_stats_wins% - 胜利次数
+#   %huntergame_stats_losses% - 失败次数
+#   %huntergame_stats_kills% - 击杀数
+#   %huntergame_stats_deaths% - 死亡数
+#   %huntergame_stats_kd% - K/D比率
+#   %huntergame_stats_playtime% - 游戏时长(格式化)
+#   %huntergame_stats_playtime_seconds% - 游戏时长(秒)
+
+# ========================================
+#     FeatherBoard 配置示例
+# ========================================
+# 文件位置: plugins/FeatherBoard/boards.yml
+#
+# huntergame-lobby:
+#   interval: 20
+#   title:
+#     text:
+#       - '&6&lMANHUNT &7- &e大厅'
+#   lines:
+#     1: ''
+#     2: '&7玩家: &a%huntergame_player_count%&7/&a%huntergame_max_players%'
+#     3: ''
+#     4: '&7状态: %huntergame_game_state_color%%huntergame_game_state%'
+#     5: ''
+#     6: '&7你的战绩:'
+#     7: '&7胜利: &a%huntergame_stats_wins%'
+#     8: '&7K/D: &e%huntergame_stats_kd%'
+#     9: ''
+#
+# huntergame-game:
+#   interval: 20
+#   title:
+#     text:
+#       - '&6&lMANHUNT'
+#   lines:
+#     1: ''
+#     2: '&7状态: %huntergame_game_state_color%%huntergame_game_state%'
+#     3: '&7角色: %huntergame_player_role_color%%huntergame_player_role%'
+#     4: ''
+#     5: '&7复活: &a%huntergame_respawns%&7/&a%huntergame_max_respawns%'
+#     6: '&7逃亡者: &a%huntergame_alive_runners%&7/&a%huntergame_total_runners%'
+#     7: '&7猎人: &c%huntergame_alive_hunters%&7/&a%huntergame_total_hunters%'
+#     8: ''
+#     9: '&7时间: &e%huntergame_game_time%'
+#     10: ''
+
+# ========================================
+#     AnimatedScoreboard 配置示例
+# ========================================
+# 文件位置: plugins/AnimatedScoreboard/boards/huntergame.yml
+#
+# title:
+#   - '&6&lM&e&lA&6&lN&e&lH&6&lU&e&lN&6&lT'
+#   - '&e&lM&6&lA&e&lN&6&lH&e&lU&6&lN&e&lT'
+# interval: 2
+# lines:
+#   - ''
+#   - '&7角色: %huntergame_player_role_color%%huntergame_player_role%'
+#   - ''
+#   - '&7存活:'
+#   - '  &a逃亡者: %huntergame_alive_runners%/%huntergame_total_runners%'
+#   - '  &c猎人: %huntergame_alive_hunters%/%huntergame_total_hunters%'
+#   - ''
+#   - '&7时间: &e%huntergame_game_time%'
+#   - ''
+#   - '&7战绩: &a%huntergame_stats_wins%&7胜 &c%huntergame_stats_losses%&7负'
+#   - ''
+
+# ========================================
+#     TAB 插件配置示例
+# ========================================
+# 文件位置: plugins/TAB/config.yml
+#
+# scoreboard-teams:
+#   huntergame-runner:
+#     prefix: '&a[逃亡者] '
+#     condition: '%huntergame_is_runner%=true'
+#   huntergame-hunter:
+#     prefix: '&c[猎人] '
+#     condition: '%huntergame_is_hunter%=true'
+#   huntergame-spectator:
+#     prefix: '&7[观战] '
+#     condition: '%huntergame_is_spectator%=true'
+
+# ========================================
+#     DeluxeMenus 配置示例（GUI中显示）
+# ========================================
+# 文件位置: plugins/DeluxeMenus/gui_menus/stats.yml
+#
+# menu_title: '&6&l你的战绩'
+# size: 27
+# items:
+#   stats_display:
+#     material: PLAYER_HEAD
+#     slot: 13
+#     display_name: '&e%player_name%'
+#     lore:
+#       - ''
+#       - '&7总胜利: &a%huntergame_stats_wins%'
+#       - '&7总失败: &c%huntergame_stats_losses%'
+#       - '&7击杀数: &e%huntergame_stats_kills%'
+#       - '&7死亡数: &e%huntergame_stats_deaths%'
+#       - '&7K/D比: &6%huntergame_stats_kd%'
+#       - '&7游戏时长: &b%huntergame_stats_playtime%'
+#       - ''

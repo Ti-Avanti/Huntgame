@@ -47,12 +47,14 @@ public class IntegrationManager {
                 try {
                     placeholderAPIIntegration = new PlaceholderAPIIntegration(plugin);
                     if (placeholderAPIIntegration.register()) {
-                        plugin.getLogger().info("已集成 PlaceholderAPI，提供 24 个变量支持");
+                        plugin.getLogger().info("已集成 PlaceholderAPI，提供 60+ 个变量支持");
+                        plugin.getLogger().info("变量前缀: %huntergame_<变量名>%");
                     } else {
                         plugin.getLogger().warning("PlaceholderAPI 注册失败");
                     }
                 } catch (Exception e) {
                     plugin.getLogger().warning("PlaceholderAPI 集成初始化失败: " + e.getMessage());
+                    e.printStackTrace();
                 }
             } else {
                 plugin.getLogger().info("未检测到 PlaceholderAPI 插件，变量功能将被禁用");
