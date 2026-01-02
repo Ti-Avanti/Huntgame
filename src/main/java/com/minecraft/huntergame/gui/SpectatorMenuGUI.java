@@ -158,8 +158,8 @@ public class SpectatorMenuGUI {
             if (meta != null && meta.getOwningPlayer() != null) {
                 Player target = Bukkit.getPlayer(meta.getOwningPlayer().getUniqueId());
                 if (target != null && target.isOnline()) {
-                    // 传送到目标玩家
-                    player.teleport(target);
+                    // 使用原生观战跟随功能
+                    player.setSpectatorTarget(target);
                     player.sendMessage("§a正在观战 " + target.getName());
                     player.closeInventory();
                 } else {

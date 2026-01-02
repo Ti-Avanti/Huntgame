@@ -126,8 +126,9 @@ public class ManhuntGame {
     public boolean addPlayer(UUID uuid) {
         plugin.debug("ManhuntGame.addPlayer: uuid=" + uuid + ", state=" + state);
         
+        // 游戏开始后不允许加入（只能在WAITING和MATCHING状态加入）
         if (state != GameState.WAITING && state != GameState.MATCHING) {
-            plugin.debug("Cannot add player: game not in WAITING or MATCHING state");
+            plugin.debug("Cannot add player: game not in WAITING or MATCHING state (current: " + state + ")");
             return false;
         }
         
@@ -159,6 +160,31 @@ public class ManhuntGame {
             // 由ManhuntManager处理自动开始
         }
         
+        return true;
+    }
+    
+    /**
+     * 添加观战者到游戏（游戏进行中也可以加入）
+     */
+    public boolean addSpectator(UUID uuid) {
+        plugin.debug("ManhuntGame.addSpectator: uuid=" + uuid + ", state=" + state);
+        
+        // 只有在游戏进行中才能观战
+        if (state != GameState.PLAYING) {
+            plugin.debug("Cannot add spectator: game not in PLAYING state (current: " + state + ")");
+            return false;
+        }
+        
+        if (isPlayerInGame(uuid)) {
+            plugin.debug("Cannot add spectator: already in game");
+            return false;
+        }
+        
+        // 添加为观战者
+        spectators.add(uuid);
+        playerRoles.put(uuid, PlayerRole.SPECTATOR);
+        
+        plugin.debug("Spectator added successfully");
         return true;
     }
     

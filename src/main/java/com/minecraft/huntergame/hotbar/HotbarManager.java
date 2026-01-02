@@ -22,7 +22,8 @@ public class HotbarManager {
     
     // 道具槽位
     private static final int SLOT_JOIN_GAME = 0;      // 加入游戏
-    private static final int SLOT_STATS = 1;          // 查看统计
+    private static final int SLOT_SPECTATE_GAME = 1;  // 观战游戏
+    private static final int SLOT_STATS = 2;          // 查看统计
     private static final int SLOT_LEAVE_ROOM = 4;     // 离开房间
     private static final int SLOT_SPECTATOR_MENU = 0; // 观战菜单
     private static final int SLOT_LEAVE_SPECTATOR = 8; // 离开观战
@@ -48,6 +49,15 @@ public class HotbarManager {
             "§7选择或创建游戏房间"
         );
         player.getInventory().setItem(SLOT_JOIN_GAME, joinGame);
+        
+        // 观战游戏
+        ItemStack spectateGame = createItem(
+            Material.ENDER_EYE,
+            "§d§l观战游戏",
+            "§7点击查看进行中的游戏",
+            "§7选择一个游戏进行观战"
+        );
+        player.getInventory().setItem(SLOT_SPECTATE_GAME, spectateGame);
         
         // 查看统计
         ItemStack stats = createItem(
@@ -145,6 +155,7 @@ public class HotbarManager {
         
         String name = meta.getDisplayName();
         return name.contains("加入游戏") || 
+               name.contains("观战游戏") ||
                name.contains("个人统计") ||
                name.contains("离开房间") ||
                name.contains("观战菜单") ||
@@ -169,6 +180,9 @@ public class HotbarManager {
         if (name.contains("加入游戏")) {
             // 直接加入或创建游戏进行匹配
             handleJoinGame(player);
+        } else if (name.contains("观战游戏")) {
+            // 打开观战游戏列表
+            handleSpectateGame(player);
         } else if (name.contains("个人统计")) {
             // 执行统计命令
             player.performCommand("manhunt stats");
@@ -345,28 +359,11 @@ public class HotbarManager {
             }
         }
         
-        // 如果没有可用游戏，检查是否可以创建
+        // 如果没有可用游戏，提示无空闲房间
         if (availableGame == null) {
-            if (!plugin.getManhuntManager().canCreateGame()) {
-                player.sendMessage("§c当前无法创建游戏！");
-                return;
-            }
-            
-            // 获取默认世界名称
-            String worldName = plugin.getManhuntConfig().getWorldName();
-            if (worldName == null || worldName.isEmpty()) {
-                worldName = "manhunt_world";
-            }
-            
-            // 创建新游戏
-            availableGame = plugin.getManhuntManager().createGame(worldName);
-            
-            if (availableGame == null) {
-                player.sendMessage("§c创建游戏失败！");
-                return;
-            }
-            
-            player.sendMessage("§a创建了新的游戏房间");
+            player.sendMessage("§c当前没有空闲的游戏房间！");
+            player.sendMessage("§e所有房间都已开始游戏，请稍后再试或观战游戏");
+            return;
         }
         
         // 加入游戏
@@ -378,5 +375,21 @@ public class HotbarManager {
         } else {
             player.sendMessage("§c加入游戏失败！");
         }
+    }
+    
+    /**
+     * 处理观战游戏
+     */
+    private void handleSpectateGame(Player player) {
+        // 检查玩家是否已在游戏中
+        if (plugin.getManhuntManager().isInGame(player)) {
+            player.sendMessage("§c你已经在游戏中了！");
+            return;
+        }
+        
+        // 打开观战游戏列表GUI
+        com.minecraft.huntergame.gui.SpectateGameGUI gui = 
+            new com.minecraft.huntergame.gui.SpectateGameGUI(plugin, player);
+        gui.open();
     }
 }

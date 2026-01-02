@@ -94,6 +94,9 @@ public class HunterGame extends JavaPlugin {
     // 观战菜单监听器
     private com.minecraft.huntergame.listener.SpectatorMenuListener spectatorMenuListener;
     
+    // 观战游戏列表监听器
+    private com.minecraft.huntergame.listener.SpectateGameListener spectateGameListener;
+    
     // Bungee组件
     private BungeeManager bungeeManager;
     private RedisManager redisManager;
@@ -552,6 +555,13 @@ public class HunterGame extends JavaPlugin {
         spectatorMenuListener = new com.minecraft.huntergame.listener.SpectatorMenuListener(this);
         getServer().getPluginManager().registerEvents(spectatorMenuListener, this);
         
+        // 观战游戏列表监听器
+        spectateGameListener = new com.minecraft.huntergame.listener.SpectateGameListener(this);
+        getServer().getPluginManager().registerEvents(spectateGameListener, this);
+        
+        // 观战者权限限制监听器
+        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.SpectatorRestrictionListener(this), this);
+        
         // Hotbar监听器
         getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.HotbarListener(this), this);
         
@@ -669,6 +679,10 @@ public class HunterGame extends JavaPlugin {
     
     public com.minecraft.huntergame.listener.SpectatorMenuListener getSpectatorMenuListener() {
         return spectatorMenuListener;
+    }
+    
+    public com.minecraft.huntergame.listener.SpectateGameListener getSpectateGameListener() {
+        return spectateGameListener;
     }
     
     public BungeeManager getBungeeManager() {

@@ -276,6 +276,61 @@ public class ManhuntManager {
     }
     
     /**
+     * 玩家观战游戏
+     */
+    public boolean spectateGame(Player player, String gameId) {
+        plugin.debug("spectateGame called: player=" + player.getName() + ", gameId=" + gameId);
+        
+        ManhuntGame game = games.get(gameId);
+        if (game == null) {
+            plugin.debug("Game not found: " + gameId);
+            return false;
+        }
+        
+        // 检查游戏是否在进行中
+        if (game.getState() != com.minecraft.huntergame.game.GameState.PLAYING) {
+            plugin.debug("Game not in PLAYING state: " + game.getState());
+            player.sendMessage("§c该游戏尚未开始或已结束！");
+            return false;
+        }
+        
+        // 检查玩家是否已在其他游戏中
+        if (isInGame(player)) {
+            plugin.debug("Player already in game: " + player.getName());
+            return false;
+        }
+        
+        // 添加玩家为观战者
+        boolean added = game.addSpectator(player.getUniqueId());
+        plugin.debug("addSpectator result: " + added);
+        
+        if (added) {
+            playerGameMap.put(player.getUniqueId(), gameId);
+            plugin.getLogger().info("玩家 " + player.getName() + " 开始观战游戏 " + gameId);
+            
+            // 设置为观战模式
+            player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+            
+            // 传送到游戏世界
+            if (game.getSpawnLocation() != null) {
+                player.teleport(game.getSpawnLocation());
+            }
+            
+            // 创建游戏计分板
+            plugin.getSidebarManager().createSidebar(player, game);
+            
+            // 给予观战道具
+            plugin.getHotbarManager().giveSpectatorItems(player);
+            
+            plugin.debug("Player successfully joined as spectator");
+            return true;
+        }
+        
+        plugin.debug("Failed to add player as spectator");
+        return false;
+    }
+    
+    /**
      * 获取玩家所在的游戏
      */
     public ManhuntGame getPlayerGame(Player player) {
