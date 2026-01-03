@@ -155,7 +155,6 @@ error:
 tips:
   compass-usage: "&7右键点击指南针更新目标"
   compass-switch: "&7潜行+右键切换目标"
-  spectator-mode: "&7你现在是观战者，可以自由飞行"
   prepare-time: "&7准备时间内猎人无法移动"
   respawn-limit: "&7你还有 &e{respawns} &7次复活机会"
 

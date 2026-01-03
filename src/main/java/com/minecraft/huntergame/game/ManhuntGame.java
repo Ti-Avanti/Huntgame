@@ -122,13 +122,16 @@ public class ManhuntGame {
     
     /**
      * 添加玩家到游戏
+     * 使用同步锁保护，防止并发问题
      */
-    public boolean addPlayer(UUID uuid) {
+    public synchronized boolean addPlayer(UUID uuid) {
         plugin.debug("ManhuntGame.addPlayer: uuid=" + uuid + ", state=" + state);
         
-        // 游戏开始后不允许加入（只能在WAITING和MATCHING状态加入）
+        // 严格的白名单检查：只允许在WAITING和MATCHING状态加入
+        // 准备阶段(PREPARING)、游戏中(PLAYING)、结束(ENDING)等状态都不允许加入
         if (state != GameState.WAITING && state != GameState.MATCHING) {
             plugin.debug("Cannot add player: game not in WAITING or MATCHING state (current: " + state + ")");
+            plugin.debug("Rejected states: PREPARING, PLAYING, ENDING, etc.");
             return false;
         }
         

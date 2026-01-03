@@ -107,12 +107,6 @@ runner:
     speed-potion: 2
     ender-pearl: 4
 
-# 游戏事件配置(可选)
-events:
-  enabled: false
-  trigger-interval: 300
-  trigger-chance: 0.3
-
 # 防作弊配置
 anti-cheat:
   # 禁用传送命令

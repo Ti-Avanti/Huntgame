@@ -148,8 +148,8 @@ public class TrackerManager {
             return;
         }
         
-        // 自动更新不受冷却限制（Lodestone模式下需要持续更新）
-        tracker.updateTarget(hunter);
+        // 自动更新：只更新当前目标的位置，不切换目标
+        tracker.updateCurrentTargetLocation(hunter);
     }
     
     /**

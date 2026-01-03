@@ -102,11 +102,6 @@ leaderboard:
   escapes: "&7Top Escapes"
   entry: "&e{0}. &7{1}: &a{2}"
   
-# Spectator
-spectator:
-  now-spectating: "&7You are now spectating &e{0}"
-  no-players: "&cNo players to spectate!"
-  
 # Rewards
 reward:
   received: "&aYou received &e{0} &acoins!"
@@ -160,17 +155,6 @@ party:
   usage-accept: "&cUsage: /party accept <leader>"
   usage-decline: "&cUsage: /party decline <leader>"
   usage-kick: "&cUsage: /party kick <player>"
-
-# Game Event Messages
-event:
-  chest-refill: "&e[Event] &aChests refilled! &e{0} &achests have been restocked!"
-  item-drop: "&e[Event] &aSpecial item dropped! &e{0} &ahas spawned on the map!"
-  weather-clear: "&e[Event] &aWeather cleared!"
-  weather-rain: "&e[Event] &7It's starting to rain..."
-  weather-thunder: "&e[Event] &cThunderstorm incoming!"
-  time-day: "&e[Event] &aDay has arrived!"
-  time-sunset: "&e[Event] &6Sunset is falling..."
-  time-night: "&e[Event] &8Night has fallen..."
 
 
 # ========================================
@@ -234,11 +218,6 @@ manhunt:
     entered-end: "&e{0} entered the End!"
     returned-overworld: "&e{0} returned to the Overworld!"
     
-  # Spectator
-  spectator:
-    mode-enabled: "&7You are now a spectator"
-    cannot-interact: "&cSpectators cannot interact with the world!"
-    
   # Command Messages
   command:
     game-created: "&aGame created: &e{0}"
@@ -249,10 +228,3 @@ manhunt:
     not-started: "&cGame has not started yet!"
     spawn-set: "&aSpawn point set"
     world-set: "&aGame world set to: &e{0}"
-    
-  # Event Messages
-  event:
-    random-effect: "&a§l[Event] &ePlayer &b{0} &egot &a{1} &eeffect!"
-    random-teleport: "&d§l[Event] &ePlayer &b{0} &ewas randomly teleported!"
-    weather-change: "&b§l[Event] &eWeather changed to &a{0}&e!"
-    time-change: "&b§l[Event] &eTime changed to &a{0}&e!"

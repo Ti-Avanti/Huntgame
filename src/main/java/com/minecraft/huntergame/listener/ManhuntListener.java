@@ -91,6 +91,15 @@ public class ManhuntListener implements Listener {
         // 不清空掉落物，让物品正常掉落
         // event.getDrops().clear();
         
+        // 更新统计数据
+        Player killer = player.getKiller();
+        if (killer != null && game.isPlayerInGame(killer.getUniqueId())) {
+            // 更新猎人击杀数
+            plugin.getStatsManager().addHunterKill(killer.getUniqueId());
+        }
+        // 更新逃亡者死亡数
+        plugin.getStatsManager().addSurvivorDeath(player.getUniqueId());
+        
         // 记录死亡位置
         Location deathLocation = player.getLocation().clone();
         
@@ -197,6 +206,9 @@ public class ManhuntListener implements Listener {
         event.setKeepLevel(false);
         // 不清空掉落物，让物品正常掉落
         // event.getDrops().clear();
+        
+        // 更新猎人死亡数
+        plugin.getStatsManager().addHunterDeath(player.getUniqueId());
         
         // 记录死亡位置
         Location deathLocation = player.getLocation().clone();

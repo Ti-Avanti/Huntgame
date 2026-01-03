@@ -155,12 +155,46 @@ public class ManhuntManager {
         ManhuntGame game = games.get(gameId);
         if (game == null) {
             plugin.debug("Game not found: " + gameId);
+            player.sendMessage("§c游戏不存在！");
             return false;
         }
         
         // 检查玩家是否已在其他游戏中
         if (isInGame(player)) {
             plugin.debug("Player already in game: " + player.getName());
+            player.sendMessage("§c你已经在游戏中了！");
+            return false;
+        }
+        
+        // 额外的状态检查：明确拒绝准备阶段、游戏中、结束阶段的加入请求
+        com.minecraft.huntergame.game.GameState state = game.getState();
+        if (state == com.minecraft.huntergame.game.GameState.PREPARING) {
+            plugin.debug("Cannot join: game is in PREPARING state");
+            player.sendMessage("§c游戏已经开始准备，无法加入！");
+            player.sendMessage("§e请等待当前游戏结束后再试");
+            return false;
+        }
+        
+        if (state == com.minecraft.huntergame.game.GameState.PLAYING) {
+            plugin.debug("Cannot join: game is in PLAYING state");
+            player.sendMessage("§c游戏正在进行中，无法加入！");
+            player.sendMessage("§e你可以使用 §a/manhunt spectate §e观战游戏");
+            return false;
+        }
+        
+        if (state == com.minecraft.huntergame.game.GameState.ENDING || 
+            state == com.minecraft.huntergame.game.GameState.RESTARTING) {
+            plugin.debug("Cannot join: game is ending or restarting");
+            player.sendMessage("§c游戏正在结束，无法加入！");
+            player.sendMessage("§e请稍后再试");
+            return false;
+        }
+        
+        // 只允许在 WAITING 和 MATCHING 状态加入
+        if (state != com.minecraft.huntergame.game.GameState.WAITING && 
+            state != com.minecraft.huntergame.game.GameState.MATCHING) {
+            plugin.debug("Cannot join: invalid game state: " + state);
+            player.sendMessage("§c当前游戏状态不允许加入！");
             return false;
         }
         
@@ -174,7 +208,7 @@ public class ManhuntManager {
             plugin.debug("Player successfully joined game");
             
             // 根据游戏状态创建对应的计分板
-            com.minecraft.huntergame.game.GameState state = game.getState();
+            // state 变量已在上面定义，这里直接使用
             plugin.debug("Game state: " + state + ", creating appropriate sidebar");
             
             if (state == com.minecraft.huntergame.game.GameState.WAITING) {
@@ -265,6 +299,14 @@ public class ManhuntManager {
                     plugin.debug("玩家离开后立即更新Redis状态: " + status + ", 玩家数: " + playerCount);
                 }
                 
+                // 检查匹配状态：如果在匹配中且人数不足，取消匹配
+                if (game.isMatching() && !game.hasMinPlayers()) {
+                    plugin.getLogger().info("匹配中玩家离开导致人数不足，取消匹配: " + gameId);
+                    broadcastToGame(game, "§c人数不足，匹配已取消");
+                    cancelGame(game);
+                    return;
+                }
+                
                 // 检查游戏是否应该结束
                 if (game.shouldEnd()) {
                     // 判断结束原因
@@ -273,61 +315,6 @@ public class ManhuntManager {
                 }
             }
         }
-    }
-    
-    /**
-     * 玩家观战游戏
-     */
-    public boolean spectateGame(Player player, String gameId) {
-        plugin.debug("spectateGame called: player=" + player.getName() + ", gameId=" + gameId);
-        
-        ManhuntGame game = games.get(gameId);
-        if (game == null) {
-            plugin.debug("Game not found: " + gameId);
-            return false;
-        }
-        
-        // 检查游戏是否在进行中
-        if (game.getState() != com.minecraft.huntergame.game.GameState.PLAYING) {
-            plugin.debug("Game not in PLAYING state: " + game.getState());
-            player.sendMessage("§c该游戏尚未开始或已结束！");
-            return false;
-        }
-        
-        // 检查玩家是否已在其他游戏中
-        if (isInGame(player)) {
-            plugin.debug("Player already in game: " + player.getName());
-            return false;
-        }
-        
-        // 添加玩家为观战者
-        boolean added = game.addSpectator(player.getUniqueId());
-        plugin.debug("addSpectator result: " + added);
-        
-        if (added) {
-            playerGameMap.put(player.getUniqueId(), gameId);
-            plugin.getLogger().info("玩家 " + player.getName() + " 开始观战游戏 " + gameId);
-            
-            // 设置为观战模式
-            player.setGameMode(org.bukkit.GameMode.SPECTATOR);
-            
-            // 传送到游戏世界
-            if (game.getSpawnLocation() != null) {
-                player.teleport(game.getSpawnLocation());
-            }
-            
-            // 创建游戏计分板
-            plugin.getSidebarManager().createSidebar(player, game);
-            
-            // 给予观战道具
-            plugin.getHotbarManager().giveSpectatorItems(player);
-            
-            plugin.debug("Player successfully joined as spectator");
-            return true;
-        }
-        
-        plugin.debug("Failed to add player as spectator");
-        return false;
     }
     
     /**
@@ -714,6 +701,13 @@ public class ManhuntManager {
                     }
                 }
                 
+                // 检查人数是否不足最低要求
+                if (!game.hasMinPlayers()) {
+                    broadcastToGame(game, "§c人数不足，匹配已取消");
+                    cancelGame(game);
+                    continue;
+                }
+                
                 // 检查是否达到最大人数，自动开始
                 if (game.isFull()) {
                     broadcastToGame(game, "§a人数已满，游戏即将开始！");
@@ -932,29 +926,72 @@ public class ManhuntManager {
      */
     private void updatePlayerStats(ManhuntGame game, boolean runnersWin) {
         for (UUID uuid : game.getAllPlayers()) {
-            Player player = plugin.getServer().getPlayer(uuid);
-            if (player == null) continue;
-            
-            PlayerData data = plugin.getStatsManager().getPlayerData(player);
-            if (data == null) continue;
-            
+            // 获取玩家角色
             PlayerRole role = game.getPlayerRole(uuid);
-            if (role == null) continue;
+            if (role == null || role == PlayerRole.SPECTATOR) continue;
             
-            // 更新胜利统计
-            if (role == PlayerRole.RUNNER && runnersWin) {
-                data.setRunnerWins(data.getRunnerWins() + 1);
-            } else if (role == PlayerRole.HUNTER && !runnersWin) {
-                data.setHunterWins(data.getHunterWins() + 1);
+            // 获取玩家数据（即使玩家离线也要更新）
+            PlayerData data = plugin.getStatsManager().getPlayerData(uuid);
+            
+            // 如果数据不在缓存中，尝试加载
+            if (data == null) {
+                plugin.debug("玩家数据不在缓存中，尝试加载: " + uuid);
+                // 同步加载玩家数据
+                try {
+                    data = plugin.getPlayerRepository().load(uuid);
+                    if (data == null) {
+                        plugin.getLogger().warning("无法加载玩家数据: " + uuid);
+                        continue;
+                    }
+                    plugin.debug("成功加载玩家数据: " + uuid);
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("加载玩家数据失败: " + uuid + " - " + ex.getMessage());
+                    continue;
+                }
+            }
+            
+            plugin.debug("更新玩家统计: " + uuid + ", 角色: " + role);
+            
+            // 增加游戏场次
+            data.setGamesPlayed(data.getGamesPlayed() + 1);
+            
+            // 判断是否胜利
+            boolean isWinner = (role == PlayerRole.RUNNER && runnersWin) || 
+                              (role == PlayerRole.HUNTER && !runnersWin);
+            
+            // 更新胜负统计
+            if (isWinner) {
+                data.setGamesWon(data.getGamesWon() + 1);
+                
+                // 更新角色胜利统计
+                if (role == PlayerRole.RUNNER) {
+                    data.setRunnerWins(data.getRunnerWins() + 1);
+                } else if (role == PlayerRole.HUNTER) {
+                    data.setHunterWins(data.getHunterWins() + 1);
+                }
+                
+                plugin.debug("玩家胜利: " + uuid + ", 总胜利: " + data.getGamesWon());
+            } else {
+                data.setGamesLost(data.getGamesLost() + 1);
+                plugin.debug("玩家失败: " + uuid + ", 总失败: " + data.getGamesLost());
             }
             
             // 如果末影龙被击败，增加击杀龙统计
-            if (game.isDragonDefeated() && role == PlayerRole.RUNNER) {
+            if (game.isDragonDefeated() && role == PlayerRole.RUNNER && runnersWin) {
                 data.setDragonKills(data.getDragonKills() + 1);
+                plugin.debug("玩家击杀龙: " + uuid + ", 总击杀龙: " + data.getDragonKills());
             }
             
-            // 保存数据
-            plugin.getStatsManager().savePlayerData(player);
+            // 直接保存数据到数据库（异步保存）
+            // 不使用 StatsManager.savePlayerData()，因为它只保存缓存中的数据
+            final PlayerData finalData = data;
+            plugin.getPlayerRepository().saveAsync(data, success -> {
+                if (success) {
+                    plugin.debug("成功保存玩家统计数据: " + uuid);
+                } else {
+                    plugin.getLogger().warning("保存玩家统计数据失败: " + uuid);
+                }
+            });
         }
     }
     

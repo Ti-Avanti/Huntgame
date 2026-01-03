@@ -30,7 +30,6 @@ import com.minecraft.huntergame.listener.ManhuntListener;
 import com.minecraft.huntergame.listener.PlayerJoinLeaveListener;
 import com.minecraft.huntergame.listener.SpectatorListener;
 import com.minecraft.huntergame.listener.AntiCheatListener;
-import com.minecraft.huntergame.event.GameEventManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
@@ -85,17 +84,8 @@ public class HunterGame extends JavaPlugin {
     // 世界管理器
     private WorldManager worldManager;
     
-    // 游戏事件管理器
-    private GameEventManager gameEventManager;
-    
     // Hotbar管理器
     private com.minecraft.huntergame.hotbar.HotbarManager hotbarManager;
-    
-    // 观战菜单监听器
-    private com.minecraft.huntergame.listener.SpectatorMenuListener spectatorMenuListener;
-    
-    // 观战游戏列表监听器
-    private com.minecraft.huntergame.listener.SpectateGameListener spectateGameListener;
     
     // Bungee组件
     private BungeeManager bungeeManager;
@@ -371,10 +361,6 @@ public class HunterGame extends JavaPlugin {
             // 初始化世界管理器
             worldManager = new WorldManager(this);
             
-            // 初始化游戏事件管理器
-            gameEventManager = new GameEventManager(this);
-            gameEventManager.startEventCheckTask();
-            
             // 初始化Hotbar管理器
             hotbarManager = new com.minecraft.huntergame.hotbar.HotbarManager(this);
             
@@ -551,17 +537,6 @@ public class HunterGame extends JavaPlugin {
         // 防作弊监听器
         getServer().getPluginManager().registerEvents(new AntiCheatListener(this), this);
         
-        // 观战菜单监听器
-        spectatorMenuListener = new com.minecraft.huntergame.listener.SpectatorMenuListener(this);
-        getServer().getPluginManager().registerEvents(spectatorMenuListener, this);
-        
-        // 观战游戏列表监听器
-        spectateGameListener = new com.minecraft.huntergame.listener.SpectateGameListener(this);
-        getServer().getPluginManager().registerEvents(spectateGameListener, this);
-        
-        // 观战者权限限制监听器
-        getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.SpectatorRestrictionListener(this), this);
-        
         // Hotbar监听器
         getServer().getPluginManager().registerEvents(new com.minecraft.huntergame.listener.HotbarListener(this), this);
         
@@ -669,20 +644,8 @@ public class HunterGame extends JavaPlugin {
         return worldManager;
     }
     
-    public GameEventManager getGameEventManager() {
-        return gameEventManager;
-    }
-    
     public com.minecraft.huntergame.hotbar.HotbarManager getHotbarManager() {
         return hotbarManager;
-    }
-    
-    public com.minecraft.huntergame.listener.SpectatorMenuListener getSpectatorMenuListener() {
-        return spectatorMenuListener;
-    }
-    
-    public com.minecraft.huntergame.listener.SpectateGameListener getSpectateGameListener() {
-        return spectateGameListener;
     }
     
     public BungeeManager getBungeeManager() {

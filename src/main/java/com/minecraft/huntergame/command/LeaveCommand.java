@@ -67,8 +67,12 @@ public class LeaveCommand implements CommandExecutor, TabCompleter {
         plugin.getManhuntManager().removePlayer(player, game);
         
         // 传送玩家到主世界出生点
-        Location spawnLocation = plugin.getServer().getWorlds().get(0).getSpawnLocation();
-        player.teleport(spawnLocation);
+        if (!plugin.getServer().getWorlds().isEmpty()) {
+            Location spawnLocation = plugin.getServer().getWorlds().get(0).getSpawnLocation();
+            player.teleport(spawnLocation);
+        } else {
+            plugin.getLogger().warning("无法传送玩家 " + player.getName() + "：没有可用的世界");
+        }
         
         // 清理玩家状态
         player.setHealth(20.0);

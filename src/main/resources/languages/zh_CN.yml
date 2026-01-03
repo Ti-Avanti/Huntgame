@@ -116,12 +116,6 @@ leaderboard:
   escapes: "&7逃脱排行"
   entry: "&e{0}. &7{1}: &a{2}"
   
-# 观战
-spectator:
-  now-spectating: "&7你现在正在观战 &e{0}"
-  now-spectating-arena: "&7你现在正在观战竞技场 &e{0}"
-  no-players: "&c没有可观战的玩家！"
-  
 # 奖励
 reward:
   received: "&a你获得了 &e{0} &a金币！"
@@ -175,17 +169,6 @@ party:
   usage-accept: "&c用法: /party accept <队长>"
   usage-decline: "&c用法: /party decline <队长>"
   usage-kick: "&c用法: /party kick <玩家>"
-
-# 游戏事件消息
-event:
-  chest-refill: "&e[事件] &a箱子已刷新！共刷新了 &e{0} &a个箱子！"
-  item-drop: "&e[事件] &a特殊道具掉落！&e{0} &a已在地图中生成！"
-  weather-clear: "&e[事件] &a天气转晴！"
-  weather-rain: "&e[事件] &7开始下雨了..."
-  weather-thunder: "&e[事件] &c雷暴来袭！"
-  time-day: "&e[事件] &a白天到来！"
-  time-sunset: "&e[事件] &6黄昏降临..."
-  time-night: "&e[事件] &8夜幕降临..."
 
 
 # ========================================
@@ -249,11 +232,6 @@ manhunt:
     entered-end: "&e{0} 进入了末地！"
     returned-overworld: "&e{0} 返回了主世界！"
     
-  # 观战
-  spectator:
-    mode-enabled: "&7你现在是观战者"
-    cannot-interact: "&c观战者无法与世界互动！"
-    
   # 命令消息
   command:
     game-created: "&a游戏已创建: &e{0}"
@@ -264,10 +242,3 @@ manhunt:
     not-started: "&c游戏还未开始！"
     spawn-set: "&a出生点已设置"
     world-set: "&a游戏世界已设置为: &e{0}"
-    
-  # 事件消息
-  event:
-    random-effect: "&a§l[事件] &e玩家 &b{0} &e获得了 &a{1} &e效果！"
-    random-teleport: "&d§l[事件] &e玩家 &b{0} &e被随机传送了！"
-    weather-change: "&b§l[事件] &e天气变为 &a{0}&e！"
-    time-change: "&b§l[事件] &e时间变为 &a{0}&e！"

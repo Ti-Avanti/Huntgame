@@ -13,7 +13,7 @@ softdepend: [Vault, PlaceholderAPI]
 commands:
   huntergame:
     description: 猎人游戏主命令
-    usage: /<command> [help|start|stop|join|leave|spectate]
+    usage: /<command> [help|start|stop|join|leave]
     aliases: [hg, manhunt]
   
   hgstats:
@@ -40,7 +40,6 @@ permissions:
       huntergame.join: true
       huntergame.leave: true
       huntergame.stats: true
-      huntergame.spectate: true
       huntergame.admin: true
       huntergame.party: true
   
@@ -54,10 +53,6 @@ permissions:
   
   huntergame.stats:
     description: 查看统计权限
-    default: true
-  
-  huntergame.spectate:
-    description: 观战权限
     default: true
   
   huntergame.party:

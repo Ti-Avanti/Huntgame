@@ -288,6 +288,13 @@ public class RedisManager {
         return serverName;
     }
     
+    /**
+     * 获取键前缀
+     */
+    public String getKeyPrefix() {
+        return keyPrefix;
+    }
+    
     // ==================== Bungee 模式增强方法 ====================
     
     /**

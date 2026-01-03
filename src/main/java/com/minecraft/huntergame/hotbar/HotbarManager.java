@@ -22,11 +22,8 @@ public class HotbarManager {
     
     // 道具槽位
     private static final int SLOT_JOIN_GAME = 0;      // 加入游戏
-    private static final int SLOT_SPECTATE_GAME = 1;  // 观战游戏
     private static final int SLOT_STATS = 2;          // 查看统计
     private static final int SLOT_LEAVE_ROOM = 4;     // 离开房间
-    private static final int SLOT_SPECTATOR_MENU = 0; // 观战菜单
-    private static final int SLOT_LEAVE_SPECTATOR = 8; // 离开观战
     
     public HotbarManager(HunterGame plugin) {
         this.plugin = plugin;
@@ -49,15 +46,6 @@ public class HotbarManager {
             "§7选择或创建游戏房间"
         );
         player.getInventory().setItem(SLOT_JOIN_GAME, joinGame);
-        
-        // 观战游戏
-        ItemStack spectateGame = createItem(
-            Material.ENDER_EYE,
-            "§d§l观战游戏",
-            "§7点击查看进行中的游戏",
-            "§7选择一个游戏进行观战"
-        );
-        player.getInventory().setItem(SLOT_SPECTATE_GAME, spectateGame);
         
         // 查看统计
         ItemStack stats = createItem(
@@ -87,35 +75,6 @@ public class HotbarManager {
             "§7返回游戏大厅"
         );
         player.getInventory().setItem(SLOT_LEAVE_ROOM, leaveRoom);
-        
-        player.updateInventory();
-    }
-    
-    // ==================== 观战状态道具 ====================
-    
-    /**
-     * 给予观战道具
-     */
-    public void giveSpectatorItems(Player player) {
-        player.getInventory().clear();
-        
-        // 观战菜单
-        ItemStack spectatorMenu = createItem(
-            Material.ENDER_EYE,
-            "§d§l观战菜单",
-            "§7点击选择观战目标",
-            "§7快速切换到其他玩家视角"
-        );
-        player.getInventory().setItem(SLOT_SPECTATOR_MENU, spectatorMenu);
-        
-        // 离开观战
-        ItemStack leaveSpectator = createItem(
-            Material.RED_BED,
-            "§c§l离开观战",
-            "§7点击退出观战模式",
-            "§7返回游戏大厅"
-        );
-        player.getInventory().setItem(SLOT_LEAVE_SPECTATOR, leaveSpectator);
         
         player.updateInventory();
     }
@@ -155,11 +114,8 @@ public class HotbarManager {
         
         String name = meta.getDisplayName();
         return name.contains("加入游戏") || 
-               name.contains("观战游戏") ||
                name.contains("个人统计") ||
-               name.contains("离开房间") ||
-               name.contains("观战菜单") ||
-               name.contains("离开观战");
+               name.contains("离开房间");
     }
     
     /**
@@ -180,9 +136,6 @@ public class HotbarManager {
         if (name.contains("加入游戏")) {
             // 直接加入或创建游戏进行匹配
             handleJoinGame(player);
-        } else if (name.contains("观战游戏")) {
-            // 打开观战游戏列表
-            handleSpectateGame(player);
         } else if (name.contains("个人统计")) {
             // 执行统计命令
             player.performCommand("manhunt stats");
@@ -192,32 +145,6 @@ public class HotbarManager {
             if (game != null) {
                 plugin.getManhuntManager().leaveGame(player);
                 player.sendMessage("§a你已离开游戏房间");
-                
-                // 给予大厅道具
-                giveLobbyItems(player);
-            }
-        } else if (name.contains("观战菜单")) {
-            // 打开观战菜单
-            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
-            if (game != null) {
-                // 只有在游戏进行中才能打开观战菜单
-                if (game.getState() == com.minecraft.huntergame.game.GameState.PLAYING) {
-                    com.minecraft.huntergame.gui.SpectatorMenuGUI menu = 
-                        new com.minecraft.huntergame.gui.SpectatorMenuGUI(plugin, player, game);
-                    plugin.getSpectatorMenuListener().registerMenu(player, menu);
-                    menu.open();
-                } else {
-                    player.sendMessage("§c游戏尚未开始，无法使用观战菜单！");
-                }
-            } else {
-                player.sendMessage("§c你不在游戏中！");
-            }
-        } else if (name.contains("离开观战")) {
-            // 离开观战
-            ManhuntGame game = plugin.getManhuntManager().getPlayerGame(player);
-            if (game != null) {
-                plugin.getManhuntManager().leaveGame(player);
-                player.sendMessage("§a你已退出观战模式");
                 
                 // 给予大厅道具
                 giveLobbyItems(player);
@@ -375,21 +302,5 @@ public class HotbarManager {
         } else {
             player.sendMessage("§c加入游戏失败！");
         }
-    }
-    
-    /**
-     * 处理观战游戏
-     */
-    private void handleSpectateGame(Player player) {
-        // 检查玩家是否已在游戏中
-        if (plugin.getManhuntManager().isInGame(player)) {
-            player.sendMessage("§c你已经在游戏中了！");
-            return;
-        }
-        
-        // 打开观战游戏列表GUI
-        com.minecraft.huntergame.gui.SpectateGameGUI gui = 
-            new com.minecraft.huntergame.gui.SpectateGameGUI(plugin, player);
-        gui.open();
     }
 }

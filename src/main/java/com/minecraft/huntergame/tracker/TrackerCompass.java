@@ -28,13 +28,17 @@ public class TrackerCompass {
     private final ManhuntGame game;
     private UUID targetRunnerUUID;  // 当前追踪目标
     private long lastUpdateTime;    // 上次更新时间
+    private long lastManualTime;    // 上次手动操作时间
     private int cooldown;           // 冷却时间(秒)
+    private boolean manualTarget;   // 是否手动选择目标（true=手动切换，false=自动选择最近）
     
     public TrackerCompass(UUID hunterUUID, ManhuntGame game, int cooldown) {
         this.hunterUUID = hunterUUID;
         this.game = game;
         this.cooldown = cooldown;
         this.lastUpdateTime = 0;
+        this.lastManualTime = 0;
+        this.manualTarget = false; // 默认自动选择
     }
     
     /**
@@ -47,11 +51,13 @@ public class TrackerCompass {
         if (nearest == null) {
             // 无目标
             targetRunnerUUID = null;
+            manualTarget = false;
             updateCompassDisplay(hunter, null);
             return;
         }
         
         targetRunnerUUID = nearest;
+        manualTarget = false; // 标记为自动选择
         Player target = Bukkit.getPlayer(nearest);
         
         if (target == null || !target.isOnline()) {
@@ -69,25 +75,68 @@ public class TrackerCompass {
     }
     
     /**
+     * 仅更新当前目标的位置（不切换目标）
+     * 用于自动更新任务
+     */
+    public void updateCurrentTargetLocation(Player hunter) {
+        // 如果刚刚手动操作过（2秒内），跳过自动更新，避免闪烁
+        long timeSinceManual = System.currentTimeMillis() - lastManualTime;
+        if (timeSinceManual < 2000) { // 2秒保护期
+            return;
+        }
+        
+        // 如果没有目标，自动选择最近的
+        if (targetRunnerUUID == null) {
+            updateTarget(hunter);
+            return;
+        }
+        
+        // 检查当前目标是否还存活
+        List<UUID> aliveRunners = game.getAliveRunners();
+        if (!aliveRunners.contains(targetRunnerUUID)) {
+            // 当前目标已死亡，重新选择
+            if (manualTarget) {
+                // 如果是手动选择的，切换到下一个
+                switchToNextTarget(hunter);
+            } else {
+                // 如果是自动选择的，选择最近的
+                updateTarget(hunter);
+            }
+            return;
+        }
+        
+        // 更新当前目标的位置
+        Player target = Bukkit.getPlayer(targetRunnerUUID);
+        if (target != null && target.isOnline()) {
+            updateCompassLodestone(hunter, target.getLocation());
+            updateCompassDisplay(hunter, target);
+        }
+    }
+    
+    /**
      * 切换到下一个目标（手动切换）
      */
     public void switchToNextTarget(Player hunter) {
         List<UUID> runners = game.getAliveRunners();
         if (runners.isEmpty()) {
             targetRunnerUUID = null;
+            manualTarget = false;
             updateCompassDisplay(hunter, null);
+            lastManualTime = System.currentTimeMillis(); // 记录手动操作时间
             return;
         }
         
         // 如果只有一个目标，不需要切换
         if (runners.size() == 1) {
             targetRunnerUUID = runners.get(0);
+            manualTarget = true; // 标记为手动选择
             Player target = Bukkit.getPlayer(targetRunnerUUID);
             if (target != null && target.isOnline()) {
                 updateCompassLodestone(hunter, target.getLocation());
                 updateCompassDisplay(hunter, target);
             }
             hunter.sendMessage(ChatColor.YELLOW + "只有一个逃亡者，无需切换");
+            lastManualTime = System.currentTimeMillis(); // 记录手动操作时间
             return;
         }
         
@@ -100,6 +149,7 @@ public class TrackerCompass {
         // 切换到下一个目标
         int nextIndex = (currentIndex + 1) % runners.size();
         targetRunnerUUID = runners.get(nextIndex);
+        manualTarget = true; // 标记为手动选择
         
         Player target = Bukkit.getPlayer(targetRunnerUUID);
         if (target != null && target.isOnline()) {
@@ -110,6 +160,7 @@ public class TrackerCompass {
         
         // 更新时间
         lastUpdateTime = System.currentTimeMillis();
+        lastManualTime = System.currentTimeMillis(); // 记录手动操作时间
     }
     
     /**
