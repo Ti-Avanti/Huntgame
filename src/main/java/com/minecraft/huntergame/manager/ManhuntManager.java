@@ -278,6 +278,9 @@ public class ManhuntManager {
                 player.getInventory().clear();
                 player.setGameMode(org.bukkit.GameMode.SURVIVAL);
                 
+                // 重置玩家数据（经验、配方、成就）
+                resetPlayerData(player);
+                
                 // 给予大厅道具
                 plugin.getHotbarManager().giveLobbyItems(player);
                 
@@ -629,6 +632,9 @@ public class ManhuntManager {
                 player.getInventory().clear();
                 player.setGameMode(org.bukkit.GameMode.SURVIVAL);
                 
+                // 重置玩家数据（经验、配方、成就）
+                resetPlayerData(player);
+                
                 // 给予大厅道具
                 plugin.getHotbarManager().giveLobbyItems(player);
                 
@@ -922,7 +928,9 @@ public class ManhuntManager {
     // ==================== 辅助方法 ====================
     
     /**
-     * 更新玩家统计数据
+     * 更新玩家段位分数
+     * 逃亡者获胜：+20分，失败：-10分
+     * 猎人获胜：+10分，失败：-20分
      */
     private void updatePlayerStats(ManhuntGame game, boolean runnersWin) {
         for (UUID uuid : game.getAllPlayers()) {
@@ -950,46 +958,80 @@ public class ManhuntManager {
                 }
             }
             
-            plugin.debug("更新玩家统计: " + uuid + ", 角色: " + role);
+            plugin.debug("更新玩家段位: " + uuid + ", 角色: " + role);
             
-            // 增加游戏场次
-            data.setGamesPlayed(data.getGamesPlayed() + 1);
+            int oldScore = data.getScore();
+            com.minecraft.huntergame.rank.Rank oldRank = data.getCurrentRank();
             
             // 判断是否胜利
             boolean isWinner = (role == PlayerRole.RUNNER && runnersWin) || 
                               (role == PlayerRole.HUNTER && !runnersWin);
             
-            // 更新胜负统计
-            if (isWinner) {
-                data.setGamesWon(data.getGamesWon() + 1);
-                
-                // 更新角色胜利统计
-                if (role == PlayerRole.RUNNER) {
-                    data.setRunnerWins(data.getRunnerWins() + 1);
-                } else if (role == PlayerRole.HUNTER) {
-                    data.setHunterWins(data.getHunterWins() + 1);
+            // 根据角色和胜负加减分
+            int scoreChange = 0;
+            if (role == PlayerRole.RUNNER) {
+                if (isWinner) {
+                    scoreChange = 20; // 逃亡者获胜 +20分
+                    plugin.debug("逃亡者获胜: +" + scoreChange + "分");
+                } else {
+                    scoreChange = -10; // 逃亡者失败 -10分
+                    plugin.debug("逃亡者失败: " + scoreChange + "分");
                 }
-                
-                plugin.debug("玩家胜利: " + uuid + ", 总胜利: " + data.getGamesWon());
-            } else {
-                data.setGamesLost(data.getGamesLost() + 1);
-                plugin.debug("玩家失败: " + uuid + ", 总失败: " + data.getGamesLost());
+            } else if (role == PlayerRole.HUNTER) {
+                if (isWinner) {
+                    scoreChange = 10; // 猎人获胜 +10分
+                    plugin.debug("猎人获胜: +" + scoreChange + "分");
+                } else {
+                    scoreChange = -20; // 猎人失败 -20分
+                    plugin.debug("猎人失败: " + scoreChange + "分");
+                }
             }
             
-            // 如果末影龙被击败，增加击杀龙统计
-            if (game.isDragonDefeated() && role == PlayerRole.RUNNER && runnersWin) {
-                data.setDragonKills(data.getDragonKills() + 1);
-                plugin.debug("玩家击杀龙: " + uuid + ", 总击杀龙: " + data.getDragonKills());
+            // 更新分数
+            data.addScore(scoreChange);
+            
+            int newScore = data.getScore();
+            com.minecraft.huntergame.rank.Rank newRank = data.getCurrentRank();
+            
+            plugin.debug("分数变化: " + oldScore + " -> " + newScore + " (" + (scoreChange > 0 ? "+" : "") + scoreChange + ")");
+            
+            // 检查段位变化
+            if (newRank.ordinal() > oldRank.ordinal()) {
+                // 晋级
+                plugin.debug("玩家晋级: " + oldRank.getDisplayName() + " -> " + newRank.getDisplayName());
+                
+                // 通知玩家晋级
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    player.sendMessage("§6§l恭喜！你已晋级到 " + newRank.getColoredName() + "§6§l！");
+                    player.sendMessage("§e当前分数: §a" + newScore + " §7(" + (scoreChange > 0 ? "+" : "") + scoreChange + ")");
+                }
+            } else if (newRank.ordinal() < oldRank.ordinal()) {
+                // 掉段
+                plugin.debug("玩家掉段: " + oldRank.getDisplayName() + " -> " + newRank.getDisplayName());
+                
+                // 通知玩家掉段
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    player.sendMessage("§c你已掉段到 " + newRank.getColoredName() + "§c！");
+                    player.sendMessage("§e当前分数: §c" + newScore + " §7(" + scoreChange + ")");
+                }
+            } else {
+                // 段位未变化，只通知分数变化
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    String scoreColor = scoreChange > 0 ? "§a" : "§c";
+                    player.sendMessage("§e段位分数: " + scoreColor + (scoreChange > 0 ? "+" : "") + scoreChange + " §7(当前: " + newScore + ")");
+                }
             }
             
             // 直接保存数据到数据库（异步保存）
-            // 不使用 StatsManager.savePlayerData()，因为它只保存缓存中的数据
             final PlayerData finalData = data;
             plugin.getPlayerRepository().saveAsync(data, success -> {
                 if (success) {
-                    plugin.debug("成功保存玩家统计数据: " + uuid);
+                    plugin.debug("成功保存玩家段位数据: " + uuid);
                 } else {
-                    plugin.getLogger().warning("保存玩家统计数据失败: " + uuid);
+                    plugin.getLogger().warning("保存玩家段位数据失败: " + uuid);
                 }
             });
         }
@@ -1045,8 +1087,41 @@ public class ManhuntManager {
                 player.setFoodLevel(20);
                 player.getInventory().clear();
                 player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+                
+                // 重置玩家数据
+                resetPlayerData(player);
             }
         }
+    }
+    
+    /**
+     * 重置玩家数据（经验、配方、成就）
+     */
+    private void resetPlayerData(Player player) {
+        // 重置经验
+        player.setLevel(0);
+        player.setExp(0);
+        player.setTotalExperience(0);
+        
+        // 重置配方（清除所有已解锁的配方）
+        // 注意：这会清除玩家所有已解锁的配方，包括默认配方
+        // 如果需要保留默认配方，可以选择性清除
+        for (org.bukkit.NamespacedKey recipe : player.getDiscoveredRecipes()) {
+            player.undiscoverRecipe(recipe);
+        }
+        
+        // 重置成就（进度）
+        // 遍历所有进度并重置
+        java.util.Iterator<org.bukkit.advancement.Advancement> iterator = plugin.getServer().advancementIterator();
+        while (iterator.hasNext()) {
+            org.bukkit.advancement.Advancement advancement = iterator.next();
+            org.bukkit.advancement.AdvancementProgress progress = player.getAdvancementProgress(advancement);
+            for (String criteria : progress.getAwardedCriteria()) {
+                progress.revokeCriteria(criteria);
+            }
+        }
+        
+        plugin.debug("已重置玩家数据: " + player.getName() + " (经验、配方、成就)");
     }
     
     /**

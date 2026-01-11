@@ -1,34 +1,25 @@
 package com.minecraft.huntergame.models;
 
+import com.minecraft.huntergame.rank.Rank;
 import java.util.UUID;
 
 /**
- * 玩家数据模型
- * 存储玩家的游戏统计数据
+ * 玩家数据模型 - 段位系统
+ * 存储玩家的段位和分数
  * 
  * @author YourName
- * @version 1.0.0
+ * @version 2.0.0
  */
 public class PlayerData {
     
     private UUID uuid;
     private String name;
     
-    // 统计数据
-    private int gamesPlayed;       // 游戏场次
-    private int gamesWon;          // 胜利次数（通用）
-    private int gamesLost;         // 失败次数（通用）
-    private int runnerWins;        // 作为逃亡者的胜利次数
-    private int hunterWins;        // 作为猎人的胜利次数
-    private int dragonKills;       // 击败末影龙次数
-    private int hunterKills;       // 作为猎人的击杀数
-    private int hunterDeaths;      // 作为猎人的死亡数
-    private int survivorEscapes;   // 作为逃生者的逃脱次数（兼容旧数据）
-    private int survivorDeaths;    // 作为逃生者的死亡数（兼容旧数据）
-    private int totalSurvivalTime; // 总生存时间(秒)
-    
-    // 临时数据（游戏中）
-    private transient int remainingRespawns; // 剩余复活次数（不持久化）
+    // 段位数据
+    private int score;              // 当前分数
+    private Rank currentRank;       // 当前段位
+    private Rank highestRank;       // 历史最高段位
+    private int seasonId;           // 赛季ID
     
     // 时间戳
     private long createdAt;
@@ -40,18 +31,10 @@ public class PlayerData {
     public PlayerData(UUID uuid, String name) {
         this.uuid = uuid;
         this.name = name;
-        this.gamesPlayed = 0;
-        this.gamesWon = 0;
-        this.gamesLost = 0;
-        this.runnerWins = 0;
-        this.hunterWins = 0;
-        this.dragonKills = 0;
-        this.hunterKills = 0;
-        this.hunterDeaths = 0;
-        this.survivorEscapes = 0;
-        this.survivorDeaths = 0;
-        this.totalSurvivalTime = 0;
-        this.remainingRespawns = 0;
+        this.score = 0;
+        this.currentRank = Rank.UNRANKED;
+        this.highestRank = Rank.UNRANKED;
+        this.seasonId = 1; // 默认第1赛季
         this.createdAt = System.currentTimeMillis() / 1000;
         this.updatedAt = this.createdAt;
     }
@@ -75,116 +58,44 @@ public class PlayerData {
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
-    public int getGamesPlayed() {
-        return gamesPlayed;
+    public int getScore() {
+        return score;
     }
     
-    public void setGamesPlayed(int gamesPlayed) {
-        this.gamesPlayed = gamesPlayed;
+    public void setScore(int score) {
+        this.score = Math.max(0, score); // 分数不能为负
+        updateRank();
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
-    public int getGamesWon() {
-        return gamesWon;
+    public Rank getCurrentRank() {
+        return currentRank;
     }
     
-    /**
-     * 获取胜利次数（别名方法）
-     */
-    public int getWins() {
-        return gamesWon;
-    }
-    
-    public void setGamesWon(int gamesWon) {
-        this.gamesWon = gamesWon;
+    public void setCurrentRank(Rank currentRank) {
+        this.currentRank = currentRank;
+        // 更新历史最高段位
+        if (currentRank.ordinal() > highestRank.ordinal()) {
+            this.highestRank = currentRank;
+        }
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
-    public int getGamesLost() {
-        return gamesLost;
+    public Rank getHighestRank() {
+        return highestRank;
     }
     
-    /**
-     * 获取失败次数（别名方法）
-     */
-    public int getLosses() {
-        return gamesLost;
-    }
-    
-    public void setGamesLost(int gamesLost) {
-        this.gamesLost = gamesLost;
+    public void setHighestRank(Rank highestRank) {
+        this.highestRank = highestRank;
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
-    public int getRunnerWins() {
-        return runnerWins;
+    public int getSeasonId() {
+        return seasonId;
     }
     
-    public void setRunnerWins(int runnerWins) {
-        this.runnerWins = runnerWins;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getHunterWins() {
-        return hunterWins;
-    }
-    
-    public void setHunterWins(int hunterWins) {
-        this.hunterWins = hunterWins;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getDragonKills() {
-        return dragonKills;
-    }
-    
-    public void setDragonKills(int dragonKills) {
-        this.dragonKills = dragonKills;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getHunterKills() {
-        return hunterKills;
-    }
-    
-    public void setHunterKills(int hunterKills) {
-        this.hunterKills = hunterKills;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getHunterDeaths() {
-        return hunterDeaths;
-    }
-    
-    public void setHunterDeaths(int hunterDeaths) {
-        this.hunterDeaths = hunterDeaths;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getSurvivorEscapes() {
-        return survivorEscapes;
-    }
-    
-    public void setSurvivorEscapes(int survivorEscapes) {
-        this.survivorEscapes = survivorEscapes;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getSurvivorDeaths() {
-        return survivorDeaths;
-    }
-    
-    public void setSurvivorDeaths(int survivorDeaths) {
-        this.survivorDeaths = survivorDeaths;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    public int getTotalSurvivalTime() {
-        return totalSurvivalTime;
-    }
-    
-    public void setTotalSurvivalTime(int totalSurvivalTime) {
-        this.totalSurvivalTime = totalSurvivalTime;
+    public void setSeasonId(int seasonId) {
+        this.seasonId = seasonId;
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
@@ -204,164 +115,264 @@ public class PlayerData {
         this.updatedAt = updatedAt;
     }
     
-    public int getRemainingRespawns() {
-        return remainingRespawns;
-    }
-    
-    public void setRemainingRespawns(int remainingRespawns) {
-        this.remainingRespawns = remainingRespawns;
-    }
-    
     // ==================== 业务方法 ====================
     
     /**
-     * 增加游戏场次
+     * 增加分数
      */
-    public void addGame() {
-        this.gamesPlayed++;
+    public void addScore(int points) {
+        int oldScore = this.score;
+        Rank oldRank = this.currentRank;
+        
+        this.score = Math.max(0, this.score + points);
+        updateRank();
+        
+        // 检查是否晋级或掉段
+        if (this.currentRank.ordinal() > oldRank.ordinal()) {
+            // 晋级
+            this.updatedAt = System.currentTimeMillis() / 1000;
+        } else if (this.currentRank.ordinal() < oldRank.ordinal()) {
+            // 掉段
+            this.updatedAt = System.currentTimeMillis() / 1000;
+        }
+        
         this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
     /**
-     * 增加胜利次数
+     * 减少分数
      */
-    public void addWin() {
-        this.gamesWon++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
+    public void removeScore(int points) {
+        addScore(-points);
     }
     
     /**
-     * 增加失败次数
+     * 根据当前分数更新段位
      */
-    public void addLoss() {
-        this.gamesLost++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加逃亡者胜利次数
-     */
-    public void addRunnerWin() {
-        this.runnerWins++;
-        this.gamesWon++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加猎人胜利次数
-     */
-    public void addHunterWin() {
-        this.hunterWins++;
-        this.gamesWon++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加击败末影龙次数
-     */
-    public void addDragonKill() {
-        this.dragonKills++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加猎人击杀数
-     */
-    public void addHunterKill() {
-        this.hunterKills++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加猎人死亡数
-     */
-    public void addHunterDeath() {
-        this.hunterDeaths++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加逃生者逃脱次数
-     */
-    public void addSurvivorEscape() {
-        this.survivorEscapes++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加逃生者死亡数
-     */
-    public void addSurvivorDeath() {
-        this.survivorDeaths++;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 增加生存时间
-     */
-    public void addSurvivalTime(int seconds) {
-        this.totalSurvivalTime += seconds;
-        this.updatedAt = System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * 减少剩余复活次数
-     */
-    public void decreaseRespawns() {
-        if (this.remainingRespawns > 0) {
-            this.remainingRespawns--;
+    private void updateRank() {
+        Rank newRank = Rank.fromScore(this.score);
+        if (newRank != this.currentRank) {
+            setCurrentRank(newRank);
         }
     }
     
     /**
-     * 检查是否还有复活次数
+     * 重置赛季数据
      */
-    public boolean hasRespawns() {
-        return this.remainingRespawns > 0;
+    public void resetSeason(int newSeasonId) {
+        this.seasonId = newSeasonId;
+        this.score = 0;
+        this.currentRank = Rank.UNRANKED;
+        // 保留历史最高段位
+        this.updatedAt = System.currentTimeMillis() / 1000;
     }
     
     /**
-     * 获取总击杀数
+     * 获取到下一段位所需分数
      */
+    public int getScoreToNextRank() {
+        return currentRank.getScoreToNext(score);
+    }
+    
+    /**
+     * 检查是否可以晋级
+     */
+    public boolean canPromote() {
+        return currentRank.canPromote(score);
+    }
+    
+    /**
+     * 检查是否会掉段
+     */
+    public boolean canDemote() {
+        return currentRank.canDemote(score);
+    }
+    
+    // ==================== 兼容旧方法（避免编译错误） ====================
+    
+    @Deprecated
+    public int getGamesPlayed() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setGamesPlayed(int gamesPlayed) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getGamesWon() {
+        return 0;
+    }
+    
+    @Deprecated
+    public int getWins() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setGamesWon(int gamesWon) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getGamesLost() {
+        return 0;
+    }
+    
+    @Deprecated
+    public int getLosses() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setGamesLost(int gamesLost) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getRunnerWins() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setRunnerWins(int runnerWins) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getHunterWins() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setHunterWins(int hunterWins) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getDragonKills() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setDragonKills(int dragonKills) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getHunterKills() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setHunterKills(int hunterKills) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getHunterDeaths() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setHunterDeaths(int hunterDeaths) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getSurvivorEscapes() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setSurvivorEscapes(int survivorEscapes) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getSurvivorDeaths() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setSurvivorDeaths(int survivorDeaths) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public int getTotalSurvivalTime() {
+        return 0;
+    }
+    
+    @Deprecated
+    public void setTotalSurvivalTime(int totalSurvivalTime) {
+        // 不再使用
+    }
+    
+    @Deprecated
     public int getTotalKills() {
-        return hunterKills;
+        return 0;
     }
     
-    /**
-     * 获取总死亡数
-     */
+    @Deprecated
     public int getTotalDeaths() {
-        return hunterDeaths + survivorDeaths;
+        return 0;
     }
     
-    /**
-     * 获取KD比率
-     */
+    @Deprecated
     public double getKDRatio() {
-        int totalDeaths = getTotalDeaths();
-        if (totalDeaths == 0) {
-            return getTotalKills();
-        }
-        return (double) getTotalKills() / totalDeaths;
+        return 0.0;
     }
     
-    /**
-     * 获取胜率
-     */
+    @Deprecated
     public double getWinRate() {
-        if (gamesPlayed == 0) {
-            return 0.0;
-        }
-        return (double) gamesWon / gamesPlayed * 100;
+        return 0.0;
     }
     
-    /**
-     * 获取平均生存时间
-     */
+    @Deprecated
     public double getAverageSurvivalTime() {
-        if (gamesPlayed == 0) {
-            return 0.0;
-        }
-        return (double) totalSurvivalTime / gamesPlayed;
+        return 0.0;
+    }
+    
+    // 兼容 StatsManager 调用的方法
+    @Deprecated
+    public void addGame() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addWin() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addLoss() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addHunterKill() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addHunterDeath() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivorEscape() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivorDeath() {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivalTime(int seconds) {
+        // 不再使用
     }
 }

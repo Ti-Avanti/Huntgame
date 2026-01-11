@@ -66,6 +66,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "spectate":
                 return handleSpectate(sender, args);
                 
+            case "season":
+                return handleSeason(sender, args);
+                
             default:
                 plugin.getLanguageManager().sendMessage(sender, "command.unknown-subcommand");
                 return true;
@@ -81,12 +84,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§e/hg stop [游戏ID] §7- 停止游戏");
         sender.sendMessage("§e/hg join [游戏ID] §7- 加入游戏");
         sender.sendMessage("§e/hg leave §7- 离开游戏");
-        sender.sendMessage("§e/hg stats [玩家] §7- 查看统计");
+        sender.sendMessage("§e/hg stats [玩家] §7- 查看段位");
         sender.sendMessage("§e/hg list §7- 查看游戏列表");
         sender.sendMessage("§e/hg spectate <玩家> §7- 观战玩家");
         
         if (sender.hasPermission("huntergame.admin")) {
             sender.sendMessage("§c/hg reload §7- 重载配置 §c[管理员]");
+            sender.sendMessage("§c/hg season §7- 赛季管理 §c[管理员]");
         }
     }
     
@@ -730,6 +734,113 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
     
+    /**
+     * 处理赛季命令
+     */
+    private boolean handleSeason(CommandSender sender, String[] args) {
+        // 检查管理员权限
+        if (!sender.hasPermission("huntergame.admin")) {
+            plugin.getLanguageManager().sendMessage(sender, "general.no-permission");
+            return true;
+        }
+        
+        // 如果没有子命令，显示赛季信息
+        if (args.length < 2) {
+            showSeasonInfo(sender);
+            return true;
+        }
+        
+        String subCommand = args[1].toLowerCase();
+        
+        switch (subCommand) {
+            case "info":
+                showSeasonInfo(sender);
+                break;
+                
+            case "reset":
+                // 重置当前赛季
+                sender.sendMessage("§e正在重置赛季...");
+                plugin.getSeasonManager().resetSeason();
+                sender.sendMessage("§a赛季已重置！");
+                break;
+                
+            case "new":
+            case "start":
+                // 开始新赛季
+                sender.sendMessage("§e正在开始新赛季...");
+                plugin.getSeasonManager().startNewSeasonAndReset();
+                sender.sendMessage("§a新赛季已开始！");
+                break;
+                
+            case "duration":
+                // 设置赛季持续时间
+                if (args.length < 3) {
+                    sender.sendMessage("§c用法: /hg season duration <天数>");
+                    sender.sendMessage("§7设置为0表示无限期赛季");
+                    return true;
+                }
+                
+                try {
+                    int days = Integer.parseInt(args[2]);
+                    plugin.getSeasonManager().setSeasonDuration(days);
+                    
+                    if (days > 0) {
+                        sender.sendMessage("§a赛季持续时间已设置为: " + days + " 天");
+                    } else {
+                        sender.sendMessage("§a赛季持续时间已设置为: 无限期");
+                    }
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§c无效的数字: " + args[2]);
+                }
+                break;
+                
+            default:
+                sender.sendMessage("§c未知的子命令: " + subCommand);
+                sender.sendMessage("§e可用命令:");
+                sender.sendMessage("§e/hg season info §7- 查看赛季信息");
+                sender.sendMessage("§e/hg season reset §7- 重置当前赛季");
+                sender.sendMessage("§e/hg season new §7- 开始新赛季");
+                sender.sendMessage("§e/hg season duration <天数> §7- 设置赛季持续时间");
+                break;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 显示赛季信息
+     */
+    private void showSeasonInfo(CommandSender sender) {
+        int seasonId = plugin.getSeasonManager().getCurrentSeasonId();
+        long startTime = plugin.getSeasonManager().getSeasonStartTime();
+        long endTime = plugin.getSeasonManager().getSeasonEndTime();
+        long remainingTime = plugin.getSeasonManager().getSeasonRemainingTime();
+        
+        sender.sendMessage("§6========== §e赛季信息 §6==========");
+        sender.sendMessage("§e当前赛季: §6S" + seasonId);
+        sender.sendMessage("§e开始时间: §7" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(startTime)));
+        
+        if (endTime > 0) {
+            sender.sendMessage("§e结束时间: §7" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(endTime)));
+            
+            if (remainingTime > 0) {
+                long days = remainingTime / (24 * 60 * 60 * 1000);
+                long hours = (remainingTime % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000);
+                sender.sendMessage("§e剩余时间: §a" + days + "天 " + hours + "小时");
+            } else {
+                sender.sendMessage("§e状态: §c已结束");
+            }
+        } else {
+            sender.sendMessage("§e持续时间: §d无限期");
+        }
+        
+        sender.sendMessage("");
+        sender.sendMessage("§7管理命令:");
+        sender.sendMessage("§e/hg season reset §7- 重置当前赛季");
+        sender.sendMessage("§e/hg season new §7- 开始新赛季");
+        sender.sendMessage("§e/hg season duration <天数> §7- 设置持续时间");
+    }
+    
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -742,6 +853,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("huntergame.admin")) {
                 subCommands = new ArrayList<>(subCommands);
                 subCommands.add("reload");
+                subCommands.add("season");
             }
             
             String input = args[0].toLowerCase();
@@ -769,6 +881,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         completions.add(worldName);
                     }
                 }
+            } else if (args[0].equalsIgnoreCase("season")) {
+                // season 命令的第二个参数：子命令
+                List<String> seasonSubCommands = Arrays.asList("info", "reset", "new", "start", "duration");
+                String input = args[1].toLowerCase();
+                for (String sub : seasonSubCommands) {
+                    if (sub.startsWith(input)) {
+                        completions.add(sub);
+                    }
+                }
+            }
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("season") && args[1].equalsIgnoreCase("duration")) {
+                // season duration 命令的第三个参数：天数建议
+                completions.addAll(Arrays.asList("7", "14", "30", "60", "90", "0"));
             }
         }
         

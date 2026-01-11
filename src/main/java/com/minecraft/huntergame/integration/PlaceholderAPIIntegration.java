@@ -75,63 +75,62 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
             return null;
         }
         
-        // ==================== 玩家统计变量 ====================
+        // ==================== 玩家段位变量 ====================
         PlayerData data = plugin.getStatsManager().getPlayerData(player);
         
-        if (params.equals("games_played")) {
-            return data != null ? String.valueOf(data.getGamesPlayed()) : "0";
+        // 当前段位
+        if (params.equals("rank") || params.equals("current_rank")) {
+            return data != null ? data.getCurrentRank().getDisplayName() : "未定级";
         }
         
-        if (params.equals("games_won") || params.equals("stats_wins")) {
-            return data != null ? String.valueOf(data.getGamesWon()) : "0";
+        // 当前段位颜色
+        if (params.equals("rank_color") || params.equals("current_rank_color")) {
+            return data != null ? data.getCurrentRank().getColor().toString() : "&7";
         }
         
-        if (params.equals("hunter_kills") || params.equals("stats_kills")) {
-            return data != null ? String.valueOf(data.getHunterKills()) : "0";
+        // 当前段位颜色（MiniMessage格式）
+        if (params.equals("rank_color_mm") || params.equals("current_rank_color_mm")) {
+            return data != null ? data.getCurrentRank().getMiniMessageColor() : "<gray>";
         }
         
-        if (params.equals("survivor_escapes")) {
-            return data != null ? String.valueOf(data.getSurvivorEscapes()) : "0";
+        // 当前分数
+        if (params.equals("score") || params.equals("rank_score")) {
+            return data != null ? String.valueOf(data.getScore()) : "0";
         }
         
-        if (params.equals("survival_time") || params.equals("stats_playtime")) {
+        // 历史最高段位
+        if (params.equals("highest_rank")) {
+            return data != null ? data.getHighestRank().getDisplayName() : "未定级";
+        }
+        
+        // 历史最高段位颜色
+        if (params.equals("highest_rank_color")) {
+            return data != null ? data.getHighestRank().getColor().toString() : "&7";
+        }
+        
+        // 历史最高段位颜色（MiniMessage格式）
+        if (params.equals("highest_rank_color_mm")) {
+            return data != null ? data.getHighestRank().getMiniMessageColor() : "<gray>";
+        }
+        
+        // 当前赛季
+        if (params.equals("season") || params.equals("season_id")) {
+            return data != null ? String.valueOf(data.getSeasonId()) : "1";
+        }
+        
+        // 到下一段位所需分数
+        if (params.equals("score_to_next") || params.equals("score_to_next_rank")) {
             if (data != null) {
-                return formatTime(data.getTotalSurvivalTime());
-            }
-            return "0s";
-        }
-        
-        if (params.equals("stats_playtime_seconds")) {
-            return data != null ? String.valueOf(data.getTotalSurvivalTime()) : "0";
-        }
-        
-        if (params.equals("stats_losses")) {
-            if (data != null) {
-                int losses = data.getGamesPlayed() - data.getGamesWon();
-                return String.valueOf(Math.max(0, losses));
+                int scoreToNext = data.getScoreToNextRank();
+                return scoreToNext > 0 ? String.valueOf(scoreToNext) : "已满级";
             }
             return "0";
         }
         
-        if (params.equals("stats_deaths")) {
-            // 假设死亡数等于游戏场次减去逃脱次数
-            if (data != null) {
-                int deaths = data.getGamesPlayed() - data.getSurvivorEscapes();
-                return String.valueOf(Math.max(0, deaths));
-            }
-            return "0";
-        }
-        
-        if (params.equals("stats_kd")) {
-            if (data != null) {
-                int kills = data.getHunterKills();
-                int deaths = data.getGamesPlayed() - data.getSurvivorEscapes();
-                if (deaths == 0) {
-                    return String.format("%.2f", (double) kills);
-                }
-                return String.format("%.2f", (double) kills / deaths);
-            }
-            return "0.00";
+        // 玩家排名
+        if (params.equals("ranking") || params.equals("rank_position")) {
+            int ranking = plugin.getStatsManager().getPlayerRanking(player.getUniqueId());
+            return ranking > 0 ? String.valueOf(ranking) : "未上榜";
         }
         
         // ==================== 当前游戏状态变量 ====================
@@ -368,6 +367,38 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
             return PlayerRole.SPECTATOR.getColor().toString();
         }
         
+        // MiniMessage 格式的角色颜色
+        if (params.equals("player_role_color_mm") || params.equals("current_role_color_mm")) {
+            if (game != null) {
+                com.minecraft.huntergame.game.PlayerRole role = game.getPlayerRole(player.getUniqueId());
+                if (role != null) {
+                    switch (role) {
+                        case RUNNER:
+                            return "<green>";
+                        case HUNTER:
+                            return "<red>";
+                        case SPECTATOR:
+                            return "<gray>";
+                        default:
+                            return "<white>";
+                    }
+                }
+            }
+            return "<white>";
+        }
+        
+        if (params.equals("hunter_color_mm")) {
+            return "<red>";
+        }
+        
+        if (params.equals("runner_color_mm")) {
+            return "<green>";
+        }
+        
+        if (params.equals("spectator_color_mm")) {
+            return "<gray>";
+        }
+        
         // ==================== 服务器模式变量 ====================
         if (params.equals("server_mode")) {
             return plugin.getServerMode().name();
@@ -398,82 +429,56 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
             return "本地服务器";
         }
         
-        // ==================== 排行榜变量 ====================
-        // top_wins_<rank>
-        if (params.startsWith("top_wins_")) {
+        // ==================== 段位排行榜变量 ====================
+        // top_rank_<rank> - 排行榜玩家名称
+        if (params.startsWith("top_rank_")) {
             try {
                 int rank = Integer.parseInt(params.substring(9));
-                List<PlayerData> topWins = leaderboardCache.get("wins");
-                if (topWins != null && rank > 0 && rank <= topWins.size()) {
-                    return topWins.get(rank - 1).getName();
+                List<PlayerData> topRanks = leaderboardCache.get("ranks");
+                if (topRanks != null && rank > 0 && rank <= topRanks.size()) {
+                    return topRanks.get(rank - 1).getName();
                 }
             } catch (NumberFormatException ignored) {
             }
             return "";
         }
         
-        // top_wins_<rank>_value
-        if (params.startsWith("top_wins_") && params.endsWith("_value")) {
+        // top_rank_<rank>_score - 排行榜玩家分数
+        if (params.startsWith("top_rank_") && params.endsWith("_score")) {
             try {
                 String rankStr = params.substring(9, params.length() - 6);
                 int rank = Integer.parseInt(rankStr);
-                List<PlayerData> topWins = leaderboardCache.get("wins");
-                if (topWins != null && rank > 0 && rank <= topWins.size()) {
-                    return String.valueOf(topWins.get(rank - 1).getGamesWon());
+                List<PlayerData> topRanks = leaderboardCache.get("ranks");
+                if (topRanks != null && rank > 0 && rank <= topRanks.size()) {
+                    return String.valueOf(topRanks.get(rank - 1).getScore());
                 }
             } catch (NumberFormatException ignored) {
             }
             return "";
         }
         
-        // top_kills_<rank>
-        if (params.startsWith("top_kills_")) {
+        // top_rank_<rank>_rank - 排行榜玩家段位
+        if (params.startsWith("top_rank_") && params.endsWith("_rank")) {
             try {
-                int rank = Integer.parseInt(params.substring(10));
-                List<PlayerData> topKills = leaderboardCache.get("kills");
-                if (topKills != null && rank > 0 && rank <= topKills.size()) {
-                    return topKills.get(rank - 1).getName();
-                }
-            } catch (NumberFormatException ignored) {
-            }
-            return "";
-        }
-        
-        // top_kills_<rank>_value
-        if (params.startsWith("top_kills_") && params.endsWith("_value")) {
-            try {
-                String rankStr = params.substring(10, params.length() - 6);
+                String rankStr = params.substring(9, params.length() - 5);
                 int rank = Integer.parseInt(rankStr);
-                List<PlayerData> topKills = leaderboardCache.get("kills");
-                if (topKills != null && rank > 0 && rank <= topKills.size()) {
-                    return String.valueOf(topKills.get(rank - 1).getHunterKills());
+                List<PlayerData> topRanks = leaderboardCache.get("ranks");
+                if (topRanks != null && rank > 0 && rank <= topRanks.size()) {
+                    return topRanks.get(rank - 1).getCurrentRank().getDisplayName();
                 }
             } catch (NumberFormatException ignored) {
             }
             return "";
         }
         
-        // top_escapes_<rank>
-        if (params.startsWith("top_escapes_")) {
+        // top_rank_<rank>_rank_color - 排行榜玩家段位颜色
+        if (params.startsWith("top_rank_") && params.endsWith("_rank_color")) {
             try {
-                int rank = Integer.parseInt(params.substring(12));
-                List<PlayerData> topEscapes = leaderboardCache.get("escapes");
-                if (topEscapes != null && rank > 0 && rank <= topEscapes.size()) {
-                    return topEscapes.get(rank - 1).getName();
-                }
-            } catch (NumberFormatException ignored) {
-            }
-            return "";
-        }
-        
-        // top_escapes_<rank>_value
-        if (params.startsWith("top_escapes_") && params.endsWith("_value")) {
-            try {
-                String rankStr = params.substring(12, params.length() - 6);
+                String rankStr = params.substring(9, params.length() - 11);
                 int rank = Integer.parseInt(rankStr);
-                List<PlayerData> topEscapes = leaderboardCache.get("escapes");
-                if (topEscapes != null && rank > 0 && rank <= topEscapes.size()) {
-                    return String.valueOf(topEscapes.get(rank - 1).getSurvivorEscapes());
+                List<PlayerData> topRanks = leaderboardCache.get("ranks");
+                if (topRanks != null && rank > 0 && rank <= topRanks.size()) {
+                    return topRanks.get(rank - 1).getCurrentRank().getColor().toString();
                 }
             } catch (NumberFormatException ignored) {
             }
@@ -628,21 +633,12 @@ public class PlaceholderAPIIntegration extends PlaceholderExpansion {
         }
         
         try {
-            // 使用StatsManager的缓存系统（同步获取）
-            leaderboardCache.put("wins", plugin.getStatsManager().getTopWins(10));
-            leaderboardCache.put("kills", plugin.getStatsManager().getTopKills(10));
-            
-            // 尝试获取其他排行榜（如果方法存在）
-            try {
-                leaderboardCache.put("escapes", plugin.getStatsManager().getTopRunnerWins(10));
-            } catch (Exception e) {
-                // 如果方法不存在，使用空列表
-                leaderboardCache.put("escapes", new ArrayList<>());
-            }
+            // 使用StatsManager的段位排行榜缓存系统
+            leaderboardCache.put("ranks", plugin.getStatsManager().getTopRanks(10));
             
             lastCacheUpdate = now;
         } catch (Exception e) {
-            plugin.getLogger().warning("更新排行榜缓存失败: " + e.getMessage());
+            plugin.getLogger().warning("更新段位排行榜缓存失败: " + e.getMessage());
         }
     }
     

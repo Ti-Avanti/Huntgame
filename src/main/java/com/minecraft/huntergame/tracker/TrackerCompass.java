@@ -206,7 +206,7 @@ public class TrackerCompass {
         if (target == null) {
             compassMeta.setDisplayName(ChatColor.RED + "追踪指南针 - 无目标");
             compassMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "右键更新目标",
+                ChatColor.GRAY + "按Q键切换目标",
                 ChatColor.RED + "当前无存活逃亡者"
             ));
             // 清除Lodestone追踪
@@ -220,8 +220,7 @@ public class TrackerCompass {
             
             compassMeta.setDisplayName(ChatColor.GREEN + "追踪指南针 - " + target.getName());
             compassMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "右键更新目标",
-                ChatColor.GRAY + "潜行+右键切换目标",
+                ChatColor.GRAY + "按Q键切换目标",
                 ChatColor.YELLOW + "维度: " + dimension,
                 ChatColor.YELLOW + "距离: " + distanceStr,
                 ChatColor.GRAY + "自动追踪中..."

@@ -152,48 +152,31 @@ public class DatabaseManager {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
-            // 创建玩家数据表
+            // 创建玩家段位数据表
             String sql = type == DatabaseType.SQLITE ?
                 "CREATE TABLE IF NOT EXISTS player_data (" +
                 "uuid TEXT PRIMARY KEY," +
                 "name TEXT NOT NULL," +
-                "games_played INTEGER DEFAULT 0," +
-                "games_won INTEGER DEFAULT 0," +
-                "games_lost INTEGER DEFAULT 0," +
-                "runner_wins INTEGER DEFAULT 0," +
-                "hunter_wins INTEGER DEFAULT 0," +
-                "dragon_kills INTEGER DEFAULT 0," +
-                "hunter_kills INTEGER DEFAULT 0," +
-                "hunter_deaths INTEGER DEFAULT 0," +
-                "survivor_escapes INTEGER DEFAULT 0," +
-                "survivor_deaths INTEGER DEFAULT 0," +
-                "total_survival_time INTEGER DEFAULT 0," +
+                "score INTEGER DEFAULT 0," +
+                "current_rank TEXT DEFAULT 'UNRANKED'," +
+                "highest_rank TEXT DEFAULT 'UNRANKED'," +
+                "season_id INTEGER DEFAULT 1," +
                 "created_at INTEGER," +
                 "updated_at INTEGER" +
                 ")" :
                 "CREATE TABLE IF NOT EXISTS player_data (" +
                 "uuid VARCHAR(36) PRIMARY KEY," +
                 "name VARCHAR(16) NOT NULL," +
-                "games_played INT DEFAULT 0," +
-                "games_won INT DEFAULT 0," +
-                "games_lost INT DEFAULT 0," +
-                "runner_wins INT DEFAULT 0," +
-                "hunter_wins INT DEFAULT 0," +
-                "dragon_kills INT DEFAULT 0," +
-                "hunter_kills INT DEFAULT 0," +
-                "hunter_deaths INT DEFAULT 0," +
-                "survivor_escapes INT DEFAULT 0," +
-                "survivor_deaths INT DEFAULT 0," +
-                "total_survival_time INT DEFAULT 0," +
+                "score INT DEFAULT 0," +
+                "current_rank VARCHAR(32) DEFAULT 'UNRANKED'," +
+                "highest_rank VARCHAR(32) DEFAULT 'UNRANKED'," +
+                "season_id INT DEFAULT 1," +
                 "created_at BIGINT," +
                 "updated_at BIGINT," +
                 "INDEX idx_name (name)," +
-                "INDEX idx_games_won (games_won)," +
-                "INDEX idx_runner_wins (runner_wins)," +
-                "INDEX idx_hunter_wins (hunter_wins)," +
-                "INDEX idx_dragon_kills (dragon_kills)," +
-                "INDEX idx_hunter_kills (hunter_kills)," +
-                "INDEX idx_survivor_escapes (survivor_escapes)" +
+                "INDEX idx_score (score)," +
+                "INDEX idx_current_rank (current_rank)," +
+                "INDEX idx_season_id (season_id)" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
             
             stmt.execute(sql);

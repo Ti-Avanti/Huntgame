@@ -63,6 +63,9 @@ public class HunterGame extends JavaPlugin {
     private PlayerRepository playerRepository;
     private StatsManager statsManager;
     
+    // 赛季管理器
+    private com.minecraft.huntergame.rank.SeasonManager seasonManager;
+    
     // 集成管理器
     private IntegrationManager integrationManager;
     
@@ -328,6 +331,10 @@ public class HunterGame extends JavaPlugin {
             // 初始化统计管理器
             statsManager = new StatsManager(this, playerRepository);
             statsManager.startCacheUpdateTask();
+            
+            // 初始化赛季管理器
+            seasonManager = new com.minecraft.huntergame.rank.SeasonManager(this);
+            seasonManager.startSeasonCheckTask();
             
             return true;
         } catch (Exception ex) {
@@ -614,6 +621,10 @@ public class HunterGame extends JavaPlugin {
     
     public StatsManager getStatsManager() {
         return statsManager;
+    }
+    
+    public com.minecraft.huntergame.rank.SeasonManager getSeasonManager() {
+        return seasonManager;
     }
     
     public IntegrationManager getIntegrationManager() {

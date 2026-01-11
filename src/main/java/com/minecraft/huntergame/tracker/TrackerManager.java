@@ -54,9 +54,8 @@ public class TrackerManager {
         if (meta != null) {
             meta.setDisplayName(ChatColor.GREEN + "追踪指南针");
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "右键更新目标",
-                ChatColor.GRAY + "潜行+右键切换目标",
-                ChatColor.GRAY + "指向最近的逃亡者",
+                ChatColor.GRAY + "按Q键切换追踪目标",
+                ChatColor.GRAY + "自动追踪逃亡者位置",
                 ChatColor.GRAY + "使用Lodestone追踪技术"
             ));
             // 初始化Lodestone追踪（但不设置位置）
@@ -91,33 +90,17 @@ public class TrackerManager {
     }
     
     /**
-     * 处理指南针右键点击
+     * 切换追踪目标（Q键触发）
      */
-    public void handleCompassClick(Player hunter) {
+    public void switchTarget(Player hunter) {
         TrackerCompass tracker = compasses.get(hunter.getUniqueId());
         if (tracker == null) {
             hunter.sendMessage(ChatColor.RED + "你没有追踪指南针");
             return;
         }
         
-        // 检查是否潜行（切换目标）
-        if (hunter.isSneaking()) {
-            // 切换到下一个目标
-            tracker.switchToNextTarget(hunter);
-            return;
-        }
-        
-        // 检查冷却
-        if (tracker.isOnCooldown()) {
-            hunter.sendMessage(ChatColor.RED + "冷却中，请等待 " + 
-                tracker.getRemainingCooldown() + " 秒");
-            return;
-        }
-        
-        // 更新目标（自动选择最近的）
-        tracker.updateTarget(hunter);
-        
-        hunter.sendMessage(ChatColor.GREEN + "已更新追踪目标");
+        // 切换到下一个目标
+        tracker.switchToNextTarget(hunter);
     }
     
     /**

@@ -150,6 +150,43 @@ public class HotbarListener implements Listener {
         if (state == GameState.WAITING || state == GameState.MATCHING) {
             event.setCancelled(true);
             player.sendMessage("§c匹配期间无法丢弃物品！");
+            return;
         }
+        
+        // 在游戏进行中，禁止猎人丢弃追踪指南针
+        if (state == GameState.PREPARING || state == GameState.PLAYING) {
+            ItemStack item = event.getItemDrop().getItemStack();
+            
+            // 检查是否是追踪指南针
+            if (isTrackerCompass(item)) {
+                // 检查玩家是否是猎人
+                if (game.getHunters().contains(player.getUniqueId())) {
+                    event.setCancelled(true);
+                    player.sendMessage("§c你不能丢弃追踪指南针！");
+                }
+            }
+        }
+    }
+    
+    /**
+     * 检查物品是否是追踪指南针
+     */
+    private boolean isTrackerCompass(ItemStack item) {
+        if (item == null || item.getType() != org.bukkit.Material.COMPASS) {
+            return false;
+        }
+        
+        if (!item.hasItemMeta()) {
+            return false;
+        }
+        
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return false;
+        }
+        
+        // 检查显示名称是否包含"追踪指南针"
+        String displayName = org.bukkit.ChatColor.stripColor(meta.getDisplayName());
+        return displayName != null && displayName.contains("追踪指南针");
     }
 }

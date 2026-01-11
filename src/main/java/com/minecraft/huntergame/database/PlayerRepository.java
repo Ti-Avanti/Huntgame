@@ -36,50 +36,33 @@ public class PlayerRepository {
     public void save(PlayerData data) throws SQLException {
         String sql = databaseManager.getType() == DatabaseType.SQLITE ?
             "INSERT OR REPLACE INTO player_data " +
-            "(uuid, name, games_played, games_won, games_lost, runner_wins, hunter_wins, dragon_kills, " +
-            "hunter_kills, hunter_deaths, survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" :
+            "(uuid, name, score, current_rank, highest_rank, season_id, created_at, updated_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)" :
             "INSERT INTO player_data " +
-            "(uuid, name, games_played, games_won, games_lost, runner_wins, hunter_wins, dragon_kills, " +
-            "hunter_kills, hunter_deaths, survivor_escapes, survivor_deaths, total_survival_time, created_at, updated_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "(uuid, name, score, current_rank, highest_rank, season_id, created_at, updated_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "ON DUPLICATE KEY UPDATE " +
-            "name=?, games_played=?, games_won=?, games_lost=?, runner_wins=?, hunter_wins=?, dragon_kills=?, " +
-            "hunter_kills=?, hunter_deaths=?, survivor_escapes=?, survivor_deaths=?, total_survival_time=?, updated_at=?";
+            "name=?, score=?, current_rank=?, highest_rank=?, season_id=?, updated_at=?";
         
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, data.getUuid().toString());
             stmt.setString(2, data.getName());
-            stmt.setInt(3, data.getGamesPlayed());
-            stmt.setInt(4, data.getGamesWon());
-            stmt.setInt(5, data.getGamesLost());
-            stmt.setInt(6, data.getRunnerWins());
-            stmt.setInt(7, data.getHunterWins());
-            stmt.setInt(8, data.getDragonKills());
-            stmt.setInt(9, data.getHunterKills());
-            stmt.setInt(10, data.getHunterDeaths());
-            stmt.setInt(11, data.getSurvivorEscapes());
-            stmt.setInt(12, data.getSurvivorDeaths());
-            stmt.setInt(13, data.getTotalSurvivalTime());
-            stmt.setLong(14, data.getCreatedAt());
-            stmt.setLong(15, data.getUpdatedAt());
+            stmt.setInt(3, data.getScore());
+            stmt.setString(4, data.getCurrentRank().name());
+            stmt.setString(5, data.getHighestRank().name());
+            stmt.setInt(6, data.getSeasonId());
+            stmt.setLong(7, data.getCreatedAt());
+            stmt.setLong(8, data.getUpdatedAt());
             
             if (databaseManager.getType() == DatabaseType.MYSQL) {
-                stmt.setString(16, data.getName());
-                stmt.setInt(17, data.getGamesPlayed());
-                stmt.setInt(18, data.getGamesWon());
-                stmt.setInt(19, data.getGamesLost());
-                stmt.setInt(20, data.getRunnerWins());
-                stmt.setInt(21, data.getHunterWins());
-                stmt.setInt(22, data.getDragonKills());
-                stmt.setInt(23, data.getHunterKills());
-                stmt.setInt(24, data.getHunterDeaths());
-                stmt.setInt(25, data.getSurvivorEscapes());
-                stmt.setInt(26, data.getSurvivorDeaths());
-                stmt.setInt(27, data.getTotalSurvivalTime());
-                stmt.setLong(28, data.getUpdatedAt());
+                stmt.setString(9, data.getName());
+                stmt.setInt(10, data.getScore());
+                stmt.setString(11, data.getCurrentRank().name());
+                stmt.setString(12, data.getHighestRank().name());
+                stmt.setInt(13, data.getSeasonId());
+                stmt.setLong(14, data.getUpdatedAt());
             }
             
             stmt.executeUpdate();
@@ -139,10 +122,10 @@ public class PlayerRepository {
     }
     
     /**
-     * 获取胜利排行榜
+     * 获取段位排行榜（按分数排序）
      */
-    public List<PlayerData> getTopWins(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY games_won DESC LIMIT ?";
+    public List<PlayerData> getTopRanks(int limit) throws SQLException {
+        String sql = "SELECT * FROM player_data ORDER BY score DESC LIMIT ?";
         
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -160,15 +143,16 @@ public class PlayerRepository {
     }
     
     /**
-     * 获取击杀排行榜
+     * 获取当前赛季段位排行榜
      */
-    public List<PlayerData> getTopKills(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY hunter_kills DESC LIMIT ?";
+    public List<PlayerData> getTopRanksBySeason(int seasonId, int limit) throws SQLException {
+        String sql = "SELECT * FROM player_data WHERE season_id = ? ORDER BY score DESC LIMIT ?";
         
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setInt(1, limit);
+            stmt.setInt(1, seasonId);
+            stmt.setInt(2, limit);
             
             try (ResultSet rs = stmt.executeQuery()) {
                 List<PlayerData> list = new ArrayList<>();
@@ -181,87 +165,24 @@ public class PlayerRepository {
     }
     
     /**
-     * 获取逃脱排行榜
+     * 获取玩家在排行榜中的排名
      */
-    public List<PlayerData> getTopEscapes(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY survivor_escapes DESC LIMIT ?";
+    public int getPlayerRanking(UUID uuid) throws SQLException {
+        String sql = "SELECT COUNT(*) + 1 as rank FROM player_data WHERE score > (SELECT score FROM player_data WHERE uuid = ?)";
         
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setInt(1, limit);
+            stmt.setString(1, uuid.toString());
             
             try (ResultSet rs = stmt.executeQuery()) {
-                List<PlayerData> list = new ArrayList<>();
-                while (rs.next()) {
-                    list.add(parsePlayerData(rs));
+                if (rs.next()) {
+                    return rs.getInt("rank");
                 }
-                return list;
             }
         }
-    }
-    
-    /**
-     * 获取逃亡者胜利排行榜
-     */
-    public List<PlayerData> getTopRunnerWins(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY runner_wins DESC LIMIT ?";
         
-        try (Connection conn = databaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, limit);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                List<PlayerData> list = new ArrayList<>();
-                while (rs.next()) {
-                    list.add(parsePlayerData(rs));
-                }
-                return list;
-            }
-        }
-    }
-    
-    /**
-     * 获取猎人胜利排行榜
-     */
-    public List<PlayerData> getTopHunterWins(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY hunter_wins DESC LIMIT ?";
-        
-        try (Connection conn = databaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, limit);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                List<PlayerData> list = new ArrayList<>();
-                while (rs.next()) {
-                    list.add(parsePlayerData(rs));
-                }
-                return list;
-            }
-        }
-    }
-    
-    /**
-     * 获取击败末影龙排行榜
-     */
-    public List<PlayerData> getTopDragonKills(int limit) throws SQLException {
-        String sql = "SELECT * FROM player_data ORDER BY dragon_kills DESC LIMIT ?";
-        
-        try (Connection conn = databaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, limit);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                List<PlayerData> list = new ArrayList<>();
-                while (rs.next()) {
-                    list.add(parsePlayerData(rs));
-                }
-                return list;
-            }
-        }
+        return 0;
     }
     
     /**
@@ -312,17 +233,24 @@ public class PlayerRepository {
         String name = rs.getString("name");
         
         PlayerData data = new PlayerData(uuid, name);
-        data.setGamesPlayed(rs.getInt("games_played"));
-        data.setGamesWon(rs.getInt("games_won"));
-        data.setGamesLost(rs.getInt("games_lost"));
-        data.setRunnerWins(rs.getInt("runner_wins"));
-        data.setHunterWins(rs.getInt("hunter_wins"));
-        data.setDragonKills(rs.getInt("dragon_kills"));
-        data.setHunterKills(rs.getInt("hunter_kills"));
-        data.setHunterDeaths(rs.getInt("hunter_deaths"));
-        data.setSurvivorEscapes(rs.getInt("survivor_escapes"));
-        data.setSurvivorDeaths(rs.getInt("survivor_deaths"));
-        data.setTotalSurvivalTime(rs.getInt("total_survival_time"));
+        data.setScore(rs.getInt("score"));
+        
+        // 解析段位枚举
+        try {
+            String currentRankStr = rs.getString("current_rank");
+            data.setCurrentRank(com.minecraft.huntergame.rank.Rank.valueOf(currentRankStr));
+        } catch (Exception e) {
+            data.setCurrentRank(com.minecraft.huntergame.rank.Rank.UNRANKED);
+        }
+        
+        try {
+            String highestRankStr = rs.getString("highest_rank");
+            data.setHighestRank(com.minecraft.huntergame.rank.Rank.valueOf(highestRankStr));
+        } catch (Exception e) {
+            data.setHighestRank(com.minecraft.huntergame.rank.Rank.UNRANKED);
+        }
+        
+        data.setSeasonId(rs.getInt("season_id"));
         data.setCreatedAt(rs.getLong("created_at"));
         data.setUpdatedAt(rs.getLong("updated_at"));
         

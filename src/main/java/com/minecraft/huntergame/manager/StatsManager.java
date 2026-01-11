@@ -3,6 +3,7 @@ package com.minecraft.huntergame.manager;
 import com.minecraft.huntergame.HunterGame;
 import com.minecraft.huntergame.database.PlayerRepository;
 import com.minecraft.huntergame.models.PlayerData;
+import com.minecraft.huntergame.rank.Rank;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -11,11 +12,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 统计管理器
- * 负责管理玩家统计数据的缓存和更新
+ * 段位管理器
+ * 负责管理玩家段位数据的缓存和更新
  * 
  * @author YourName
- * @version 1.0.0
+ * @version 2.0.0
  */
 public class StatsManager {
     
@@ -24,6 +25,9 @@ public class StatsManager {
     
     // 数据缓存
     private final Map<UUID, PlayerData> dataCache;
+    
+    // 当前赛季ID
+    private int currentSeasonId = 1;
     
     public StatsManager(HunterGame plugin, PlayerRepository playerRepository) {
         this.plugin = plugin;
@@ -41,11 +45,18 @@ public class StatsManager {
             if (data == null) {
                 // 创建新数据
                 data = new PlayerData(uuid, player.getName());
-                plugin.getLogger().info("为玩家 " + player.getName() + " 创建新数据");
+                data.setSeasonId(currentSeasonId);
+                plugin.getLogger().info("为玩家 " + player.getName() + " 创建新段位数据");
             } else {
                 // 更新玩家名称
                 if (!data.getName().equals(player.getName())) {
                     data.setName(player.getName());
+                }
+                
+                // 检查赛季是否需要重置
+                if (data.getSeasonId() != currentSeasonId) {
+                    plugin.getLogger().info("玩家 " + player.getName() + " 赛季数据过期，重置赛季");
+                    data.resetSeason(currentSeasonId);
                 }
             }
             
@@ -61,7 +72,14 @@ public class StatsManager {
             if (data == null) {
                 // 创建新数据
                 data = new PlayerData(uuid, "Unknown");
-                plugin.getLogger().info("为玩家 " + uuid + " 创建新数据");
+                data.setSeasonId(currentSeasonId);
+                plugin.getLogger().info("为玩家 " + uuid + " 创建新段位数据");
+            } else {
+                // 检查赛季是否需要重置
+                if (data.getSeasonId() != currentSeasonId) {
+                    plugin.getLogger().info("玩家 " + uuid + " 赛季数据过期，重置赛季");
+                    data.resetSeason(currentSeasonId);
+                }
             }
             
             dataCache.put(uuid, data);
@@ -76,7 +94,7 @@ public class StatsManager {
         if (data != null) {
             playerRepository.saveAsync(data, success -> {
                 if (!success) {
-                    plugin.getLogger().warning("保存玩家数据失败: " + data.getName());
+                    plugin.getLogger().warning("保存玩家段位数据失败: " + data.getName());
                 }
             });
         }
@@ -118,306 +136,124 @@ public class StatsManager {
         return getPlayerData(player.getUniqueId());
     }
     
+    // ==================== 段位管理方法 ====================
+    
     /**
-     * 增加游戏场次
+     * 增加玩家分数
      */
-    public void addGame(UUID uuid) {
+    public void addScore(UUID uuid, int points) {
         PlayerData data = dataCache.get(uuid);
         if (data != null) {
-            data.addGame();
+            data.addScore(points);
         }
     }
     
     /**
-     * 增加胜利次数
+     * 减少玩家分数
      */
-    public void addWin(UUID uuid) {
+    public void removeScore(UUID uuid, int points) {
         PlayerData data = dataCache.get(uuid);
         if (data != null) {
-            data.addWin();
+            data.removeScore(points);
         }
     }
     
     /**
-     * 增加失败次数
+     * 获取玩家当前段位
      */
-    public void addLoss(UUID uuid) {
+    public Rank getCurrentRank(UUID uuid) {
         PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addLoss();
-        }
+        return data != null ? data.getCurrentRank() : Rank.UNRANKED;
     }
     
     /**
-     * 增加猎人击杀数
+     * 获取玩家历史最高段位
      */
-    public void addHunterKill(UUID uuid) {
+    public Rank getHighestRank(UUID uuid) {
         PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addHunterKill();
-        }
+        return data != null ? data.getHighestRank() : Rank.UNRANKED;
     }
     
     /**
-     * 增加猎人死亡数
+     * 获取玩家分数
      */
-    public void addHunterDeath(UUID uuid) {
+    public int getScore(UUID uuid) {
         PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addHunterDeath();
-        }
+        return data != null ? data.getScore() : 0;
     }
     
     /**
-     * 增加逃生者逃脱次数
+     * 获取当前赛季ID
      */
-    public void addSurvivorEscape(UUID uuid) {
-        PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addSurvivorEscape();
-        }
+    public int getCurrentSeasonId() {
+        return currentSeasonId;
     }
     
     /**
-     * 增加逃生者死亡数
+     * 设置当前赛季ID
      */
-    public void addSurvivorDeath(UUID uuid) {
-        PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addSurvivorDeath();
-        }
+    public void setCurrentSeasonId(int seasonId) {
+        this.currentSeasonId = seasonId;
     }
     
     /**
-     * 增加生存时间
+     * 重置所有玩家的赛季数据
      */
-    public void addSurvivalTime(UUID uuid, int seconds) {
-        PlayerData data = dataCache.get(uuid);
-        if (data != null) {
-            data.addSurvivalTime(seconds);
-        }
-    }
-    
-    /**
-     * 获取胜利排行榜
-     */
-    public void getTopWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopWins(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取胜利排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 获取击杀排行榜
-     */
-    public void getTopKills(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopKills(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取击杀排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 获取逃脱排行榜
-     */
-    public void getTopEscapes(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopEscapes(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取逃脱排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 获取逃亡者胜利排行榜
-     */
-    public void getTopRunnerWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopRunnerWins(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取逃亡者胜利排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 获取猎人胜利排行榜
-     */
-    public void getTopHunterWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopHunterWins(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取猎人胜利排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 获取击败末影龙排行榜
-     */
-    public void getTopDragonKills(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<PlayerData> list = playerRepository.getTopDragonKills(limit);
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(list));
-            } catch (Exception ex) {
-                plugin.getLogger().severe("获取击败末影龙排行榜失败: " + ex.getMessage());
-                ex.printStackTrace();
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> callback.accept(new java.util.ArrayList<>()));
-            }
-        });
-    }
-    
-    /**
-     * 保存所有数据
-     */
-    public void saveAll() {
-        plugin.getLogger().info("正在保存所有玩家数据...");
+    public void resetAllSeasons(int newSeasonId) {
+        this.currentSeasonId = newSeasonId;
         
-        for (UUID uuid : dataCache.keySet()) {
-            savePlayerData(uuid);
+        for (PlayerData data : dataCache.values()) {
+            data.resetSeason(newSeasonId);
         }
         
-        plugin.getLogger().info("已保存 " + dataCache.size() + " 个玩家数据");
+        plugin.getLogger().info("已重置所有玩家的赛季数据到赛季 " + newSeasonId);
     }
     
-    /**
-     * 同步保存所有数据(用于插件关闭时)
-     */
-    public void saveAllSync() {
-        plugin.getLogger().info("正在同步保存所有玩家数据...");
-        
-        int count = 0;
-        for (UUID uuid : dataCache.keySet()) {
-            PlayerData data = dataCache.get(uuid);
-            if (data != null) {
-                try {
-                    playerRepository.save(data);
-                    count++;
-                } catch (Exception ex) {
-                    plugin.getLogger().warning("保存玩家数据失败: " + data.getName() + " - " + ex.getMessage());
-                }
-            }
-        }
-        
-        plugin.getLogger().info("已同步保存 " + count + " 个玩家数据");
-    }
-    
-    // ==================== 排行榜缓存系统 ====================
+    // ==================== 排行榜系统 ====================
     
     // 排行榜缓存
-    private List<PlayerData> topWinsCache = null;
-    private List<PlayerData> topKillsCache = null;
-    private List<PlayerData> topRunnerWinsCache = null;
-    private List<PlayerData> topHunterWinsCache = null;
-    private List<PlayerData> topDragonKillsCache = null;
+    private List<PlayerData> topRanksCache = null;
     private long lastCacheUpdate = 0;
     private final long CACHE_DURATION = 5 * 60 * 1000; // 5分钟
     
     /**
-     * 获取胜利榜
+     * 获取段位排行榜
      */
-    public List<PlayerData> getTopWins(int limit) {
+    public List<PlayerData> getTopRanks(int limit) {
         updateCacheIfNeeded();
-        if (topWinsCache == null || topWinsCache.isEmpty()) {
+        if (topRanksCache == null || topRanksCache.isEmpty()) {
             try {
-                return playerRepository.getTopWins(limit);
+                return playerRepository.getTopRanks(limit);
             } catch (Exception ex) {
-                plugin.getLogger().warning("获取胜利榜失败: " + ex.getMessage());
+                plugin.getLogger().warning("获取段位排行榜失败: " + ex.getMessage());
                 return new java.util.ArrayList<>();
             }
         }
-        return topWinsCache.subList(0, Math.min(limit, topWinsCache.size()));
+        return topRanksCache.subList(0, Math.min(limit, topRanksCache.size()));
     }
     
     /**
-     * 获取击杀榜
+     * 获取当前赛季段位排行榜
      */
-    public List<PlayerData> getTopKills(int limit) {
-        updateCacheIfNeeded();
-        if (topKillsCache == null || topKillsCache.isEmpty()) {
-            try {
-                return playerRepository.getTopKills(limit);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("获取击杀榜失败: " + ex.getMessage());
-                return new java.util.ArrayList<>();
-            }
+    public List<PlayerData> getTopRanksBySeason(int limit) {
+        try {
+            return playerRepository.getTopRanksBySeason(currentSeasonId, limit);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("获取赛季段位排行榜失败: " + ex.getMessage());
+            return new java.util.ArrayList<>();
         }
-        return topKillsCache.subList(0, Math.min(limit, topKillsCache.size()));
     }
     
     /**
-     * 获取逃亡者胜利榜
+     * 获取玩家排名
      */
-    public List<PlayerData> getTopRunnerWins(int limit) {
-        updateCacheIfNeeded();
-        if (topRunnerWinsCache == null || topRunnerWinsCache.isEmpty()) {
-            try {
-                return playerRepository.getTopRunnerWins(limit);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("获取逃亡者胜利榜失败: " + ex.getMessage());
-                return new java.util.ArrayList<>();
-            }
+    public int getPlayerRanking(UUID uuid) {
+        try {
+            return playerRepository.getPlayerRanking(uuid);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("获取玩家排名失败: " + ex.getMessage());
+            return 0;
         }
-        return topRunnerWinsCache.subList(0, Math.min(limit, topRunnerWinsCache.size()));
-    }
-    
-    /**
-     * 获取猎人胜利榜
-     */
-    public List<PlayerData> getTopHunterWins(int limit) {
-        updateCacheIfNeeded();
-        if (topHunterWinsCache == null || topHunterWinsCache.isEmpty()) {
-            try {
-                return playerRepository.getTopHunterWins(limit);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("获取猎人胜利榜失败: " + ex.getMessage());
-                return new java.util.ArrayList<>();
-            }
-        }
-        return topHunterWinsCache.subList(0, Math.min(limit, topHunterWinsCache.size()));
-    }
-    
-    /**
-     * 获取击杀龙榜
-     */
-    public List<PlayerData> getTopDragonKills(int limit) {
-        updateCacheIfNeeded();
-        if (topDragonKillsCache == null || topDragonKillsCache.isEmpty()) {
-            try {
-                return playerRepository.getTopDragonKills(limit);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("获取击杀龙榜失败: " + ex.getMessage());
-                return new java.util.ArrayList<>();
-            }
-        }
-        return topDragonKillsCache.subList(0, Math.min(limit, topDragonKillsCache.size()));
     }
     
     /**
@@ -436,16 +272,12 @@ public class StatsManager {
     private void updateLeaderboardCache() {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                topWinsCache = playerRepository.getTopWins(100);
-                topKillsCache = playerRepository.getTopKills(100);
-                topRunnerWinsCache = playerRepository.getTopRunnerWins(100);
-                topHunterWinsCache = playerRepository.getTopHunterWins(100);
-                topDragonKillsCache = playerRepository.getTopDragonKills(100);
+                topRanksCache = playerRepository.getTopRanks(100);
                 lastCacheUpdate = System.currentTimeMillis();
                 
-                plugin.getLogger().info("排行榜缓存已更新");
+                plugin.getLogger().info("段位排行榜缓存已更新");
             } catch (Exception ex) {
-                plugin.getLogger().warning("更新排行榜缓存失败: " + ex.getMessage());
+                plugin.getLogger().warning("更新段位排行榜缓存失败: " + ex.getMessage());
             }
         });
     }
@@ -470,6 +302,144 @@ public class StatsManager {
             updateLeaderboardCache();
         }, 20L * 60 * 5, 20L * 60 * 5);
         
-        plugin.getLogger().info("排行榜缓存更新任务已启动");
+        plugin.getLogger().info("段位排行榜缓存更新任务已启动");
+    }
+    
+    // ==================== 兼容旧方法（避免编译错误） ====================
+    
+    @Deprecated
+    public void addGame(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addWin(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addLoss(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addHunterKill(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addHunterDeath(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivorEscape(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivorDeath(UUID uuid) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void addSurvivalTime(UUID uuid, int seconds) {
+        // 不再使用
+    }
+    
+    @Deprecated
+    public void getTopWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public void getTopKills(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public void getTopEscapes(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public void getTopRunnerWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public void getTopHunterWins(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public void getTopDragonKills(int limit, java.util.function.Consumer<List<PlayerData>> callback) {
+        // 使用新的段位排行榜
+        callback.accept(getTopRanks(limit));
+    }
+    
+    @Deprecated
+    public List<PlayerData> getTopWins(int limit) {
+        return getTopRanks(limit);
+    }
+    
+    @Deprecated
+    public List<PlayerData> getTopKills(int limit) {
+        return getTopRanks(limit);
+    }
+    
+    @Deprecated
+    public List<PlayerData> getTopRunnerWins(int limit) {
+        return getTopRanks(limit);
+    }
+    
+    @Deprecated
+    public List<PlayerData> getTopHunterWins(int limit) {
+        return getTopRanks(limit);
+    }
+    
+    @Deprecated
+    public List<PlayerData> getTopDragonKills(int limit) {
+        return getTopRanks(limit);
+    }
+    
+    /**
+     * 保存所有数据
+     */
+    public void saveAll() {
+        plugin.getLogger().info("正在保存所有玩家段位数据...");
+        
+        for (UUID uuid : dataCache.keySet()) {
+            savePlayerData(uuid);
+        }
+        
+        plugin.getLogger().info("已保存 " + dataCache.size() + " 个玩家段位数据");
+    }
+    
+    /**
+     * 同步保存所有数据(用于插件关闭时)
+     */
+    public void saveAllSync() {
+        plugin.getLogger().info("正在同步保存所有玩家段位数据...");
+        
+        int count = 0;
+        for (UUID uuid : dataCache.keySet()) {
+            PlayerData data = dataCache.get(uuid);
+            if (data != null) {
+                try {
+                    playerRepository.save(data);
+                    count++;
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("保存玩家段位数据失败: " + data.getName() + " - " + ex.getMessage());
+                }
+            }
+        }
+        
+        plugin.getLogger().info("已同步保存 " + count + " 个玩家段位数据");
     }
 }
